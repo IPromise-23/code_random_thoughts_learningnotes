@@ -1245,9 +1245,27 @@ int main() {
 
 ### 链表理论基础
 
-**链表**:一种通过**指针**串联在一起的**线性结构**,每一个节点由两部分组成,一个是**数据域**另一个是**指针域**(存放指向下一个节点的指针),最后一个节点的指针域指向null(空指针)
+**链表**:一种通过**指针**串联在一起的**线性结构**,是一种**逻辑上线性、物理上非连续**的存储结构。核心有一个个独立的`节点（Node）`组成，每一个节点由**数据域和指针域**组成，**数据域**用来存储实际的业务数据（比如数字、字符串）；**指针域**用来存储下一个节点的地址(指针域存放指向下一个节点的指针),最后一个节点的指针域指向null(空指针)
 
 链表的入口节点称为链表的头节点(head)
+
+> 对比数组与单列表
+>
+> |    特性     |     数组（Python 列表）      |                  单链表                  |
+> | :---------: | :--------------------------: | :--------------------------------------: |
+> |  内存存储   |      **连续的内存空间**      | **分散的内存空间**，**节点间靠指针连接** |
+> |  访问元素   |      随机访问（O (1)）       |          只能从头遍历（O (n)）           |
+> | 插入 / 删除 | 中间操作 O (n)（需移动元素） |       找到位置后 O (1)（仅改指针）       |
+> |    容量     |    自动扩容（有额外开销）    |            动态扩容（无开销）            |
+> |  空间开销   |           仅存数据           |          额外存指针（略占空间）          |
+>
+> 列表list的本质是动态数组，所有元素在内存中是连续存储的，每个元素都有固定的内存地址
+> 当执行`pop(0)`（删除索引0的元素）时，因为数组要求内存连续，那么后面所有的元素都要向前移动一个位置来填补第一个位置的空缺，移动操作的次数等于列表的长度n，所以时间复杂度为O（n）；
+> 当执行`pop()`（删除最后一个元素）时，前面的元素无需移动，直接释放最后一个位置即可，O（1）
+>
+> deque这样的双向链表，用`popleft()`删除第一个元素时，只是修改了指针的指向，剪断了第一个元素和第二个元素的连接，无需移动任何元素，极其省时间
+>
+> 数组（列表）动“元素位置”，链表动“节点之间的**连接关系**”，不移动任何元素
 
 ![链表1](https://file1.kamacoder.com/i/algo/20200806194529815.png)
 
@@ -1261,7 +1279,7 @@ int main() {
 
 单链表中的**指针域**只能指向节点的下一个节点
 
-**双链表**:每一个节点有两个指针域,一个指向下一个节点,一个指向上一个节点
+**双链表**:每一个节点有两个指针域,一个指向下一个节点（next）,一个指向上一个节点（prev），可实现队列
 
 **双链表**既可以向前查询又可以向后查询
 
@@ -1373,7 +1391,7 @@ class ListNode:
         self.val = val
         # 指向下一个节点的引用，默认值为None（无后续节点）
         self.next = next
-#通过current指针从表头head开始,不断将current更新为current.next,直到current为None 
+	#通过current指针从表头head开始,不断将current更新为current.next,直到current为None 
     def __str__(self):
         # 自定义打印格式，方便调试（可选但推荐）
         return f"ListNode(val={self.val})"
@@ -3027,9 +3045,165 @@ nums[a] + nums[b] + nums[c] + nums[d] == target
 
 ###  栈与队列理论基础
 
+#### 栈
 
+**栈（`stack`）：后进先出**	摞盘子，最后放上去的盘子最先拿下来	FILO,First In Last Out
+
+栈的底层可以用两种结构实现：
+
+- 数组（`list`）：缓存友好，内存连续，出入栈操作效率高；数组满了需要扩容
+- 链表：无固定大小限制，动态扩容；内存不连续，范围效率低
+
+**栈是一种特殊的线性表**，数据元素**插入（入栈，Push）**和**删除（出栈，Pop）**只能在线性表的**同一端**进行。这一端被称为**栈顶**，另一端则被称为**栈底**
+
+      |   |   <- 栈顶 (操作端)
+      | C |
+      | B |
+      | A |   <- 栈底 (固定端)
+      |___|
+
+*初始栈为空，经过 `Push(A)`, `Push(B)`, `Push(C)` 操作后，栈内状态如图所示。下一个 `Pop()` 操作将返回元素 `C`。*
+
+##### 用Python实现栈
+
+法1:直接用列表，不够规范
+
+```python
+# 列表模拟栈
+stack = []
+
+# 入栈（push）
+stack.append(1)
+stack.append(2)
+stack.append(3)
+print("栈内容:", stack)  # 输出: [1,2,3]
+
+# 出栈（pop）
+top_elem = stack.pop()
+print("出栈元素:", top_elem)  # 输出: 3
+print("出栈后栈:", stack)     # 输出: [1,2]
+
+# 查看栈顶（peek）
+peek_elem = stack[-1]
+print("栈顶元素:", peek_elem)  # 输出: 2
+
+# 判空
+print("是否为空:", len(stack) == 0)  # 输出: False
+
+# 大小
+print("栈大小:", len(stack))  # 输出: 2
+```
+
+法2:封装成类，增加异常处理（比如空栈pop时会报错），更加健壮
+
+```python
+class Stack:
+    def __init__(self):
+        self.items = []  # 底层用列表存储
+    
+    def push(self, item):
+        """入栈：向栈顶添加元素"""
+        self.items.append(item)
+    
+    def pop(self):
+        """出栈：移除并返回栈顶元素，空栈则抛异常"""
+        if self.is_empty():
+            raise IndexError("栈为空，无法执行pop操作")
+        return self.items.pop()
+    
+    def peek(self):
+        """查看栈顶元素，不移除"""
+        if self.is_empty():
+            raise IndexError("栈为空，无法查看栈顶")
+        return self.items[-1]
+    
+    def is_empty(self):
+        """判断栈是否为空"""
+        return len(self.items) == 0
+    
+    def size(self):
+        """返回栈的大小"""
+        return len(self.items)
+
+# 测试栈类
+s = Stack()
+s.push(10)
+s.push(20)
+print(s.peek())  # 输出: 20
+print(s.pop())   # 输出: 20
+print(s.size())  # 输出: 1
+# s.pop()  # 此时栈剩1个元素，pop后空；再pop会抛异常
+```
+
+
+
+#### 队列
+
+**队列（`queue`）：先进先出**	排队买票，队伍前面的人先得到服务	FIFO,First In First Out
+
+**队列**是一种特殊的线性表，其数据元素的**插入（入队，Enqueue）**和**删除（出队，Dequeue）**操作分别在线性表的**两端**进行。插入端成为**队尾**，删除端称为**队头**
+
+      出队 Dequeue <-- | A | B | C | D | <-- 入队 Enqueue
+                      ^               ^
+                    队头(Front)      队尾(Rear)
+
+队列在实际开发中需要使用`collections.deque`，即双端队列，基于**双向链表**实现，`append()`右入队和`popleft()`左出队都是O（1）
+
+##### 用Python实现队列
+
+法1:列表模拟，仅作演示
+
+```python
+# 列表模拟队列（效率低，仅演示）
+queue = []
+
+# 入队（enqueue）
+queue.append(1)
+queue.append(2)
+queue.append(3)
+print("队列内容:", queue)  # 输出: [1,2,3]
+
+# 出队（dequeue）
+front_elem = queue.pop(0)  # 效率O(n)，不推荐！
+print("出队元素:", front_elem)  # 输出: 1
+print("出队后队列:", queue)     # 输出: [2,3]
+```
+
+法2:deque实现	`collections.deque`
+
+双端队列允许从两端插入和删除
+
+```python
+from collections import deque
+
+# 初始化队列
+queue = deque()
+
+# 入队（enqueue）
+queue.append(1)
+queue.append(2)
+queue.append(3)
+print("队列内容:", queue)  # 输出: deque([1,2,3])
+
+# 出队（dequeue）
+front_elem = queue.popleft()  # 效率O(1)，推荐！
+print("出队元素:", front_elem)  # 输出: 1
+print("出队后队列:", queue)     # 输出: deque([2,3])
+
+# 查看队首
+front_elem = queue[0]
+print("队首元素:", front_elem)  # 输出: 2
+
+# 判空
+print("是否为空:", len(queue) == 0)  # 输出: False
+
+# 大小
+print("队列大小:", len(queue))  # 输出: 2
+```
 
 ### 用栈实现队列
+
+
 
 
 
@@ -3037,7 +3211,11 @@ nums[a] + nums[b] + nums[c] + nums[d] == target
 
 
 
+
+
 ### 有效的括号
+
+
 
 
 
@@ -3045,7 +3223,11 @@ nums[a] + nums[b] + nums[c] + nums[d] == target
 
 
 
+
+
 ### 逆波兰表达式求值
+
+
 
 
 
@@ -3053,11 +3235,17 @@ nums[a] + nums[b] + nums[c] + nums[d] == target
 
 
 
+
+
 ### 前K个高频元素
 
 
 
+
+
 ### 栈与队列__总结
+
+
 
 
 
