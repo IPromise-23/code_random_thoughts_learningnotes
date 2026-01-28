@@ -2472,23 +2472,456 @@ class Solution(object):
 
 ### 赎金信
 
+[力扣原题](https://leetcode.cn/problems/ransom-note/description/)
 
+```plain
+#题目
 
+给你两个字符串：ransomNote 和 magazine ，判断 ransomNote 能不能由 magazine 里面的字符构成。
 
+如果可以，返回 true ；否则返回 false 。
 
+magazine 中的每个字符只能在 ransomNote 中使用一次。
+ransomNote和magazine均由小写英文字母组成
+```
 
+#### 思路
+
+本题判断第一个字符串`ransom`能不能由第二个字符串`magazines`里面的字符构成，但是这里需要注意两点。
+
+- 第一点“为了不暴露赎金信字迹，要从杂志上搜索各个需要的字母，组成单词来表达意思” 这里*说明杂志里面的字母不可重复使用。*
+- 第二点 “你可以假设两个字符串均只含有小写字母。” *说明只有小写字母*，这一点很重要
+
+暴力解法很简单
+
+```python
+class Solution:
+    def canConstruct(self, ransomNote: str, magazine: str) -> bool:
+        # 转为列表，方便删除操作
+		ran_list = list(ransomNote)
+		for char in magazine:
+    		i = 0  # 初始化变量i
+    		while i < len(ran_list):
+        		if char == ran_list[i]:
+            		ran_list.remove(char)
+            		break
+       	 		i += 1
+        
+        # 最终判断ran_list是否为空（空则说明全部匹配成功）
+        return len(ran_list) == 0
+
+    
+#标准一点的解法 while需要自增操作,for循环不需要
+class Solution:
+    def canConstruct(self, ransomNote: str, magazine: str) -> bool:
+        # 转为列表，方便删除操作
+        mag_list = list(magazine)
+        ran_list = list(ransomNote)
+        
+        # 外层for循环：遍历magazine的字符（用副本遍历，避免原列表变化影响遍历）
+        for char in mag_list.copy():  # 关键：用copy()遍历，否则原列表删元素会漏遍历
+            # 内层for循环：遍历ransomNote的字符，找匹配
+            for j in range(len(ran_list)):
+                if char == ran_list[j]:
+                    # 匹配到，删除ran_list中的该字符
+                    ran_list.pop(j)
+                    # 同时删除mag_list中的该字符（避免重复使用）
+                    mag_list.remove(char)
+                    # 找到一个就跳出内层循环，继续匹配下一个mag字符
+                    break
+        
+        # 最终判断ran_list是否为空
+        return len(ran_list) == 0
+```
+
+```c++
+class Solution {
+public:
+    bool canConstruct(string ransomNote, string magazine) {
+        for (int i = 0; i < magazine.length(); i++) {
+            for (int j = 0; j < ransomNote.length(); j++) {
+                // 在ransomNote中找到和magazine相同的字符
+                if (magazine[i] == ransomNote[j]) {
+                    // ransomNote删除这个字符
+                    //ransomNote.begin()的作用是返回指向字符串第一个字符的迭代器(字符的指针),begin+j是把迭代器向后移动j个位置,指向ransomNote中下标为j的字符,erase(迭代器位置)本质上是和erase(下标位置,删除长度)等价的
+                    ransomNote.erase(ransomNote.begin() + j); 
+                    //ransomNote.erase(j,1);
+                    break;
+                }
+            }
+        }
+        // 如果ransomNote为空，则说明magazine的字符可以组成ransomNote
+        if (ransomNote.length() == 0) {
+            return true;
+        }
+        return false;
+    }
+};
+```
+
+想法:均由小写字母构成的话,能否采用数组进行哈希映射?
+
+当然可以选择用空间换时间的哈希策略,用一个长度为26的数组来记录magazine里字母出现的次数,在用ransomNote去验证这个数组是否包含了ransomNote所需要的所有字母
+
+那么这里为什么不使用map呢?
+
+因为map消耗的空间比数组要大,而且map要维护红黑树或者哈希表,需要做哈希函数,是很费时的.数据量大的时候就能体现出来差别,使用数组时更加简单高效的方法
+
+> 什么时候用数组?什么时候用map?
+>
+> |     维度     |                          数组实现                          |                          Map 实现                           |
+> | :----------: | :--------------------------------------------------------: | :---------------------------------------------------------: |
+> | **适用场景** | 字符集**有限、连续且范围已知**（如小写英文字母、0-9 数字） | 字符集**未知、范围大或不连续**（如包含大写、符号、Unicode） |
+> |   **效率**   |     更高（直接索引访问，时间复杂度 O(1)，无哈希开销）      |        稍低（哈希表的哈希计算、冲突处理有额外开销）         |
+> |   **空间**   |           固定（如 26 个位置，空间复杂度 O(1)）            |   动态（随字符数量变化，空间复杂度 O(k)，k 为不同字符数）   |
+> |  **灵活性**  |                 低（仅支持固定范围的字符）                 |                   高（支持任意字符类型）                    |
+>
+> #### 选择原则
+>
+> 1. **优先用数组**：当你明确知道字符的范围是有限且连续的（比如这道题的小写英文字母），数组的速度和空间效率都更优。
+> 2. **必须用 Map**：当字符集不确定、范围大或包含多种类型时（比如处理任意输入字符串、包含特殊符号），Map 是唯一选择。
+>
+> 相比于set,数组和map还是很类似的,因为他们本质上是键值对的结构,本题中需要统计字符出现次数的值,所以用set无法解决
+> 数组和map是有对应关系的存储,知道键就能找到值
+> set是只有存在性的存储.只能知道键存不存在,不知道出现了几次
+>
+> - 字符集连续且范围固定,优先使用数组(效率最高)
+> - 字符集任意/不连续,使用map
+> - 只需要判断元素是否存在,使用set
+
+```C++
+class Solution {
+public:
+    bool canConstruct(string ransomNote, string magazine) {
+        int record[26] = {0};
+        //如果ransomNote长度都大于magazine了,那肯定不能在magazine里面找到构成ransom的字符
+        if (ransomNote.size() > magazine.size()) {
+            return false;
+        }
+        for (int i = 0; i < magazine.length(); i++) {
+            // 通过record数据记录 magazine里各个字符出现次数
+            record[magazine[i]-'a'] ++;//下标索引虽是数字但能代表字母符号,下标对应的值即为字母在字符串中的出现次数
+        }
+        for (int j = 0; j < ransomNote.length(); j++) {
+            // 遍历ransomNote，在record里对应的字符个数做--操作
+            record[ransomNote[j]-'a']--;
+            // 如果小于零说明ransomNote里出现的字符，magazine没有
+            if(record[ransomNote[j]-'a'] < 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+};
+
+//时间复杂度: O(m+n)，其中m表示ransomNote的长度，n表示magazine的长度
+//空间复杂度: O(1)
+```
+
+```python
+#数组
+class Solution:
+    def canConstruct(self, ransomNote: str, magazine: str) -> bool:
+        ransom_count = [0] * 26
+        magazine_count = [0] * 26
+        for c in ransomNote:
+            ransom_count[ord(c) - ord('a')] += 1
+        for c in magazine:
+            magazine_count[ord(c) - ord('a')] += 1
+        return all(ransom_count[i] <= magazine_count[i] for i in range(26))
+    
+#使用字典_对应map
+class Solution:
+    def canConstruct(self, ransomNote: str, magazine: str) -> bool:
+        counts = {}
+        for c in magazine:
+            #counts.get(c,0),这是安全取值,如果字符c已经在counts中就返回当前的计数值,如果不在就返回默认值0,避免直接取counts[c]时报错
+            counts[c] = counts.get(c, 0) + 1
+        for c in ransomNote:
+            #c在counts中不存在,或者计数值已经为0时(表示现在这个c在counts中找不到多余的c了)
+            if c not in counts or counts[c] == 0:
+                return False
+            counts[c] -= 1
+        return True
+```
 
 ### 三数之和
 
+[力扣原题](https://leetcode.cn/problems/3sum/description/)
 
+```plain
+给你一个整数数组 nums ，判断是否存在三元组 [nums[i], nums[j], nums[k]] 满足 i != j、i != k 且 j != k ，同时还满足 nums[i] + nums[j] + nums[k] == 0 。请你返回所有和为0且不重复的三元组。
 
+注意：答案中不可以包含重复的三元组。输出的顺序和三元组的顺序并不重要
+```
 
+#### 思路
 
+两层for循环可以确定两个数值,使用哈希法来确定第三个数`0-(a+b)`是否在数组里出现过,不过本题中说不可以包含重复的三元组.把符合条件的三元组放进vector中再去去重十分费时
 
+下面给出哈希法的C++_code_
 
+```c++
+class Solution {
+public:
+    // 在一个数组中找到3个数形成的三元组，它们的和为0，不能重复使用（三数下标互不相同），且三元组不能重复。
+    // b（存储）== 0-(a+c)（检索）
+    vector<vector<int>> threeSum(vector<int>& nums) {
+        vector<vector<int>> result;//存储最终的三元组结果
+        sort(nums.begin(), nums.end());//对原数组进行排序
+        
+        for (int i = 0; i < nums.size(); i++) {
+            // 如果a是正数，a<b<c，不可能形成和为0的三元组
+            if (nums[i] > 0)
+                break;
+            
+            // [a, a, ...] 如果本轮a和上轮a相同，那么找到的b，c也是相同的，所以去重a
+            if (i > 0 && nums[i] == nums[i - 1])
+                continue;
+            
+            // 这个set的作用是存储b,用于存储内层循环中遍历过的元素
+            unordered_set<int> set;
+            
+            for (int k = i + 1; k < nums.size(); k++) {
+                // 去重b=c时的b和c
+                if (k > i + 2 && nums[k] == nums[k - 1] && nums[k - 1] == nums[k - 2])
+                    continue;
+                
+                // a+b+c=0 <=> b=0-(a+c)
+                int target = 0 - (nums[i] + nums[k]);
+                if (set.find(target) != set.end()) {
+                    result.push_back({nums[i], target, nums[k]});   // nums[k]成为c
+                    set.erase(target);
+                }
+                else {
+                    set.insert(nums[k]);                            // nums[k]成为b
+                }
+            }
+        }
 
+        return result;
+    }
+};
+
+//时间复杂度: O(n^2)
+//空间复杂度: O(n)，额外的 set 开销
+```
+
+##### 双指针法
+
+动画效果如下：
+
+![15.三数之和](https://file1.kamacoder.com/i/algo/15.%E4%B8%89%E6%95%B0%E4%B9%8B%E5%92%8C.gif)
+
+拿这个nums数组来举例，首先将数组**排序**，然后有一层**for循环，i从下标0的地方开始**，同时**定一个下标left定义在i+1的位置上，定义下标right在数组结尾的位置上**。
+
+依然还是在数组中找到 abc 使得a + b +c =0，这里相当于 a = nums[i]，b = nums[left]，c = nums[right]。
+
+接下来如何移动left 和right呢， 如果nums[i] + nums[left] + nums[right] > 0 就说明 此时三数之和大了，因为数组是排序后了，所以right下标就应该向左移动，这样才能让三数之和小一些。
+
+如果 nums[i] + nums[left] + nums[right] < 0 说明 此时 三数之和小了，left 就向右移动，才能让三数之和大一些，直到left与right相遇为止。
+
+时间复杂度：O(n^2)。
+
+```c++
+class Solution {
+public:
+    vector<vector<int>> threeSum(vector<int>& nums) {
+        vector<vector<int>> result;
+        sort(nums.begin(), nums.end());
+        // 找出a + b + c = 0
+        // a = nums[i], b = nums[left], c = nums[right]
+        for (int i = 0; i < nums.size(); i++) {
+            // 排序之后如果第一个元素已经大于零，那么无论如何组合都不可能凑成三元组，直接返回结果就可以了
+            if (nums[i] > 0) {
+                return result;
+            }
+            
+            // 错误去重a方法，将会漏掉-1,-1,2 这种情况
+            /*
+            if (nums[i] == nums[i + 1]) {
+                continue;
+            }
+            */
+            
+            // 正确去重a方法,与前一位去比较,如果相同,说明前一位已经被使用过了,不应该要这一位
+            if (i > 0 && nums[i] == nums[i - 1]) {
+                continue;
+            }
+            //定义双指针
+            int left = i + 1;
+            int right = nums.size() - 1;
+            while (right > left) {
+                // 去重复逻辑如果放在这里，0，0，0 的情况，可能直接导致 right<=left 了，从而漏掉了 0,0,0 这种三元组
+                /*
+                while (right > left && nums[right] == nums[right - 1]) right--;
+                while (right > left && nums[left] == nums[left + 1]) left++;
+                */
+                if (nums[i] + nums[left] + nums[right] > 0) right--;
+                else if (nums[i] + nums[left] + nums[right] < 0) left++;
+                else {
+                    result.push_back(vector<int>{nums[i], nums[left], nums[right]});
+                    // 去重逻辑应该放在找到一个三元组之后，对b 和 c去重
+                    while (right > left && nums[right] == nums[right - 1]) right--;
+                    while (right > left && nums[left] == nums[left + 1]) left++;
+
+                    // 找到答案时，双指针同时收缩
+                    right--;
+                    left++;
+                }
+            }
+
+        }
+        return result;
+    }
+};
+```
+
+##### 去重的逻辑
+
+**a的去重**
+
+ a, b ,c, 对应的就是 nums[i]，nums[left]，nums[right]
+
+a 如果重复了怎么办，a是nums里遍历的元素，那么应该直接跳过去。
+
+> 既然a重复了需要跳过,那么需要判断nums[i]与nums[i+1]是否相同还是判断nums[i]与nums[i-1]是否相同
+
+假设写法如下:
+
+```text
+if (nums[i] == nums[i + 1]) { // 去重操作
+    continue;
+}
+```
+
+那我们就把 三元组中出现重复元素的情况直接pass掉了。 例如{-1, -1 ,2} 这组数据，当遍历到第一个-1 的时候，判断 下一个也是-1，那这组数据就pass了。
+
+**我们要做的是 不能有重复的三元组，但三元组内的元素是可以重复的！**
+
+所以这里是有两个重复的维度。
+
+那么应该这么写：
+
+```text
+if (i > 0 && nums[i] == nums[i - 1]) {
+    continue;
+}
+```
+
+这么写就是当前使用 nums[i]，我们判断前一位是不是一样的元素，在看 {-1, -1 ,2} 这组数据，当遍历到 第一个 -1 的时候，只要前一位没有-1，那么 {-1, -1 ,2} 这组数据一样可以收录到 结果集里。
+
+**b与c的去重**
+
+可能在写本题时,对于去重的逻辑多加了 对right 和left 的去重：（代码中注释部分）
+
+```text
+while (right > left) {
+    if (nums[i] + nums[left] + nums[right] > 0) {
+        right--;
+        // 去重 right
+        while (left < right && nums[right] == nums[right + 1]) right--;
+    } else if (nums[i] + nums[left] + nums[right] < 0) {
+        left++;
+        // 去重 left
+        while (left < right && nums[left] == nums[left - 1]) left++;
+    } else {
+    }
+}
+```
+
+但细想一下，这种去重其实对提升程序运行效率是没有帮助的。
+
+拿right去重为例，即使不加这个去重逻辑，依然根据 `while (right > left)` 和 `if (nums[i] + nums[left] + nums[right] > 0)` 去完成right-- 的操作。
+
+多加了 `while (left < right && nums[right] == nums[right + 1]) right--;` 这一行代码，其实就是把 需要执行的逻辑提前执行了，但并没有减少 判断的逻辑。
+
+最直白的思考过程，就是right还是一个数一个数的减下去的，所以在哪里减的都是一样的。
+
+```python
+#双指针
+class Solution:
+    def threeSum(self, nums: List[int]) -> List[List[int]]:
+        result = []
+        nums.sort()
+        
+        for i in range(len(nums)):
+            # 如果第一个元素已经大于0，不需要进一步检查
+            if nums[i] > 0:
+                return result
+            
+            # 跳过相同的元素以避免重复
+            if i > 0 and nums[i] == nums[i - 1]:
+                continue
+                
+            left = i + 1
+            right = len(nums) - 1
+            
+            while right > left:
+                sum_ = nums[i] + nums[left] + nums[right]
+                
+                if sum_ < 0:
+                    left += 1
+                elif sum_ > 0:
+                    right -= 1
+                else:
+                    result.append([nums[i], nums[left], nums[right]])
+                    
+                    # 跳过相同的元素以避免重复
+                    while right > left and nums[right] == nums[right - 1]:
+                        right -= 1
+                    while right > left and nums[left] == nums[left + 1]:
+                        left += 1
+                      
+                    #双侧指针收缩,缩小检索区间
+                    right -= 1
+                    left += 1
+                    
+        return result
+
+#字典
+class Solution:
+    def threeSum(self, nums: List[int]) -> List[List[int]]:
+        result = []
+        nums.sort()
+        # 找出a + b + c = 0
+        # a = nums[i], b = nums[j], c = -(a + b)
+        for i in range(len(nums)):
+            # 排序之后如果第一个元素已经大于零，那么不可能凑成三元组
+            if nums[i] > 0:
+                break
+            if i > 0 and nums[i] == nums[i - 1]: #三元组元素a去重
+                continue
+            d = {}
+            s = set()  
+            for j in range(i + 1, len(nums)):
+                if j > i + 2 and nums[j] == nums[j-1] == nums[j-2]:  # 去重b
+                    continue
+                
+                c = 0 - (nums[i] + nums[j])
+                if c in s:
+                    result.append([nums[i], nums[j], c])
+                    s.remove(c)  # 去重c
+                else:
+                    s.add(nums[j])  # 存入当前nums[j]作为候选
+        
+        return result
+```
 
 ### 四数之和
+
+[力扣原题](https://leetcode.cn/problems/4sum/description/)
+
+```plain
+#题目
+
+给你一个由 n 个整数组成的数组 nums ，和一个目标值 target 。请你找出并返回满足下述全部条件且不重复的四元组 [nums[a], nums[b], nums[c], nums[d]] （若两个四元组元素一一对应，则认为两个四元组重复）：
+
+0 <= a, b, c, d < n
+a、b、c 和 d 互不相同
+nums[a] + nums[b] + nums[c] + nums[d] == target
+你可以按 任意顺序 返回答案 。答案中不可以包含重复的四元组
+```
 
 
 
