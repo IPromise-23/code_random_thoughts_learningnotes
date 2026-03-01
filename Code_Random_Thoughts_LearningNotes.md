@@ -1249,7 +1249,7 @@ int main() {
 
 链表的入口节点称为链表的头节点(head)
 
-> 对比数组与单列表
+> 对比数组与单链表
 >
 > |    特性     |     数组（Python 列表）      |                  单链表                  |
 > | :---------: | :--------------------------: | :--------------------------------------: |
@@ -1260,12 +1260,11 @@ int main() {
 > |  空间开销   |           仅存数据           |          额外存指针（略占空间）          |
 >
 > 列表`list`的本质是动态数组，所有元素在内存中是连续存储的，每个元素都有固定的内存地址
-> 当执行`pop(0)`（删除索引0的元素）时，因为数组要求内存连续，那么后面所有的元素都要向前移动一个位置来填补第一个位置的空缺，移动操作的次数等于列表的长度n，所以时间复杂度为O（n）；
-> 当执行`pop()`（删除最后一个元素）时，前面的元素无需移动，直接释放最后一个位置即可，O（1）
->
-> `deque`这样的双向链表，用`popleft()`删除第一个元素时，只是修改了指针的指向，剪断了第一个元素和第二个元素的连接，无需移动任何元素，极其省时间
->
-> 数组（列表）动“元素位置”，链表动“节点之间的**连接关系**”，不移动任何元素
+> 当执行`pop(0)`（删除索引0的元素）时，因为数组要求内存连续，那么后面所有的元素都要向前移动一个位置来填补第一个位置的空缺，移动操作的次数等于列表的长度n，所以时间复杂度为O（n）；当执行`pop()`（删除最后一个元素）时，前面的元素无需移动，直接释放最后一个位置即可，O（1）
+> 
+>`deque`这样的双向链表，用`popleft()`删除第一个元素时，只是修改了指针的指向，剪断了第一个元素和第二个元素的连接，无需移动任何元素，极其省时间
+> 
+>数组（列表）动“元素位置”，链表动“节点之间的**连接关系**”，不移动任何元素
 
 ![链表1](https://file1.kamacoder.com/i/algo/20200806194529815.png)
 
@@ -1465,7 +1464,7 @@ class ListNode:
 
 ![203_链表删除元素5](https://file1.kamacoder.com/i/algo/20210316095543775.png)
 
-这样就移除了一个头节点,可以发现单链表中移除头节点和移除其他节点的操作方式不一样,需要单独写一段逻辑来处理移除头节点的情况,可以**设置一个虚拟头节点**将所有节点按照统一的方式进行移除
+这样就移除了一个头节点,可以发现单链表中移除头节点和移除其他节点的操作方式不一样,需要单独写一段逻辑来处理移除头节点的情况,可以==**设置一个虚拟头节点**==**将所有节点按照统一的方式进行移除**
 
 ![203_链表删除元素6](https://file1.kamacoder.com/i/algo/20210316095619221.png)
 
@@ -1513,7 +1512,7 @@ public:
         ListNode* dummyHead = new ListNode(0); // 设置一个虚拟头结点
         dummyHead->next = head; // 将虚拟头结点指向head，这样方便后面做删除操作
         ListNode* cur = dummyHead;
-        while (cur->next != NULL) {
+        while (cur->next != NULL) {//不是最后一个节点，因为最后一个节点的next指向NULL
             if(cur->next->val == val) {
                 ListNode* tmp = cur->next;
                 cur->next = cur->next->next;
@@ -1527,7 +1526,11 @@ public:
         return head;
     }
 };
-
+//ListNode* cur 存的是地址，指向内存里真正的ListNode对象，ListNode是链表节点的类/结构体（包含val值和next指针）		这里cur不是ListNode对象本身，而是存储了ListNode对象内存地址的指针
+// ->是c++里指针访问成员的专用运算符
+// 如果有一个对象本身（非指针），用 . 访问成员 比如obj.val
+// 如果有一个指向对象的指针，用 -> 访问成员 比如cur->next，等价于(*cur).next，需要先通过*拿到指针指向的对象，再用.访问next成员 
+//ListNode* p中的*p表示取指针p指向的那个实际对象
 
 //递归情况
 class Solution {
@@ -1566,7 +1569,7 @@ class ListNode:
         self.val = val
         self.next = next
 
-#直接操作员链表移除节点
+#直接操作原链表移除节点
 class Solution:
     def removeElements(self, head: ListNode, val: int) -> ListNode:
         # 1. 删除头结点（连续多个头节点为目标值的情况）
@@ -1619,7 +1622,7 @@ class Solution:
         if head is None:
             return None
         
-        # 递归处理：先处理当前节点的下一个链表，返回处理后的子链表头节点
+        # 递归处理：先处理当前节点的下一级子链表，返回处理后的子链表头节点
         head.next = self.removeElements(head.next, val)
         
         # 判断当前节点是否需要保留：
@@ -1630,7 +1633,7 @@ class Solution:
 #首先是递(表示深入)
 #第一次调用(node1,6),head!=None,则调用self.removeElements(node6,6);
 #第二次调用(node6,6),head!=None,则调用self.removeElements(node3,6);	
-#第三次调用(node3,6),head!=None,则调用self.removeElements(None,6);函数会暂停在这一行,等到remveElements(None,6)返回None后函数才会苏醒,苏醒后先执行这一行的赋值语句作用
+#第三次调用(node3,6),head!=None,则调用self.removeElements(None,6);函数会暂停在这一行,等到removeElements(None,6)返回None后函数才会苏醒,苏醒后先执行这一行的赋值语句作用
 #第四次调用(None,6),满足if语句,返回None;此时是递归出口,表示终止
 #接着是归(表示回溯)
 #调用(node3,6),接收调用(None,6)返回的None,执行node3.next=None,检查node3.val=3!=6,因此返回head(此时为node3)
@@ -1657,24 +1660,530 @@ class Solution:
 如果是双向链表，则还需要属性 prev 以指示链表中的上一个节点。假设链表中的所有节点下标从 0 开始。
 
 实现 MyLinkedList 类：
-
 MyLinkedList() 初始化 MyLinkedList 对象。
 int get(int index) 获取链表中下标为 index 的节点的值。如果下标无效，则返回 -1 。
 void addAtHead(int val) 将一个值为 val 的节点插入到链表中第一个元素之前。在插入完成后，新节点会成为链表的第一个节点。
 void addAtTail(int val) 将一个值为 val 的节点追加到链表中作为链表的最后一个元素。
 void addAtIndex(int index, int val) 将一个值为 val 的节点插入到链表中下标为 index 的节点之前。如果 index 等于链表的长度，那么该节点会被追加到链表的末尾。如果 index 比长度更大，该节点将 不会插入 到链表中。
 void deleteAtIndex(int index) 如果下标有效，则删除链表中下标为 index 的节点。
+
+即实现：
+获取第n个节点的值
+头部插入节点
+尾部插入节点
+第n个节点前插入节点
+删除第n个节点
 ```
 
+注意：
 
+1. 操作第n个点一定是current->next
+2. 插入节点时注意更新顺序，否则指向会出错
 
-### 翻转链表
+C++代码
 
+```c++
+class MyLinkedList {
+public:
+    // 定义链表节点结构体
+    struct LinkedNode {
+        int val;
+        LinkedNode* next;
+        LinkedNode(int val):val(val), next(nullptr){}
+    };
 
+    // 初始化链表
+    MyLinkedList() {
+        _dummyHead = new LinkedNode(0); // 这里定义的头结点 是一个虚拟头结点，而不是真正的链表头结点
+        _size = 0;
+    }
+
+    // 获取到第index个节点数值，如果index是非法数值直接返回-1， 注意index是从0开始的，第0个节点就是头结点
+    // 定义一个名为get的函数，接收int类型的索引index，返回int类型的值
+    int get(int index) {
+        if (index > (_size - 1) || index < 0) {//_size是链表的实际节点总数
+            return -1;
+        }
+        // 初始化遍历指针cur
+        // LinkedNode* cur 定义一个指向链表节点的指针cur
+        // _dummyHead->next 虚拟头节点的下一个节点，即链表中索引为0的节点
+        LinkedNode* cur = _dummyHead->next;
+        while(index--){ 
+            // index-- 先使用index的当前值判断循环条件，再把index-1，这里如果用--index 就会陷入死循环
+            cur = cur->next;
+        }
+        return cur->val;
+    }
+
+    // 在链表最前面插入一个节点，插入完成后，新插入的节点为链表的新的头结点
+    void addAtHead(int val) {
+        LinkedNode* newNode = new LinkedNode(val);//创建一个新的节点
+        newNode->next = _dummyHead->next;
+        _dummyHead->next = newNode;
+        _size++;
+    }
+
+    // 在链表最后面添加一个节点
+    void addAtTail(int val) {
+        LinkedNode* newNode = new LinkedNode(val);
+        LinkedNode* cur = _dummyHead;
+        while(cur->next != nullptr){
+            cur = cur->next;
+        }//循环结束后cur已经指向了最后一个节点了
+        cur->next = newNode;//将最后一个节点的指针指向新的节点即可
+        _size++;
+    }
+
+    // 在第index个节点之前插入一个新节点，例如index为0，那么新插入的节点为链表的新头节点。
+    // 如果index 等于链表的长度，则说明是新插入的节点为链表的尾结点
+    // 如果index大于链表的长度，则返回空
+    // 如果index小于0，则在头部插入节点
+    void addAtIndex(int index, int val) {
+
+        if(index > _size) return;
+        if(index < 0) index = 0;        
+        
+        LinkedNode* newNode = new LinkedNode(val);//创建新节点
+        //new LinkedNode(val)在堆内存中创建了一个LinkedNode对象，值为val，返回该节点的内存地址；定义指针newNode来接收新节点的地址（即指向新节点）
+        LinkedNode* cur = _dummyHead;//初始化遍历指针cur，从虚拟头节点开始
+        //插入操作需要找到插入位置的前驱节点，要插在某个节点前必须先找到该节点的前一个节点
+        while(index--) {
+            cur = cur->next;//cur指针向后移动一个节点
+        }//循环结束后，cur正好指向要插入位置的前驱节点
+        newNode->next = cur->next;
+        /* 解释：
+       cur->next是“插入位置原本的节点”（比如插在索引2，cur->next就是原来的索引2节点）；
+       这一步必须先做！如果先改cur->next，会丢失原来的cur->next地址，新节点就找不到后续链表了。*/
+        cur->next = newNode;
+        _size++;
+    }
+
+    // 删除第index个节点，如果index 大于等于链表的长度，直接return，注意index是从0开始的
+    void deleteAtIndex(int index) {
+        if (index >= _size || index < 0) {
+            return;
+        }
+        LinkedNode* cur = _dummyHead;
+        while(index--) {
+            cur = cur ->next;
+        }
+        LinkedNode* tmp = cur->next;
+        cur->next = cur->next->next;
+        delete tmp;
+        //delete命令指示释放了tmp指针原本所指的那部分内存，
+        //被delete后的指针tmp的值（地址）并非就是NULL，而是随机值。也就是被delete后，
+        //如果不再加上一句tmp=nullptr,tmp会成为乱指的野指针
+        //如果之后的程序不小心使用了tmp，会指向难以预想的内存空间
+        tmp=nullptr;
+        _size--;
+    }
+
+    // 打印链表
+    void printLinkedList() {
+        LinkedNode* cur = _dummyHead;
+        while (cur->next != nullptr) {
+            cout << cur->next->val << " ";
+            cur = cur->next;
+        }
+        cout << endl;
+    }
+private:
+    int _size;
+    LinkedNode* _dummyHead;
+
+};
+```
+
+```C++
+//采用循环虚拟结点的双链表实现
+class MyLinkedList {
+public:
+    // 定义双向链表节点结构体
+    struct DList {
+        int elem; // 节点存储的元素
+        DList *next; // 指向下一个节点的指针
+        DList *prev; // 指向上一个节点的指针
+        // 构造函数，创建一个值为elem的新节点
+        DList(int elem) : elem(elem), next(nullptr), prev(nullptr) {};
+    };
+
+    // 构造函数，初始化链表
+    MyLinkedList() {
+        sentinelNode = new DList(0); // 创建哨兵节点，不存储有效数据
+        sentinelNode->next = sentinelNode; // 哨兵节点的下一个节点指向自身，形成循环
+        sentinelNode->prev = sentinelNode; // 哨兵节点的上一个节点指向自身，形成循环
+        size = 0; // 初始化链表大小为0
+    }
+
+    // 获取链表中第index个节点的值
+    int get(int index) {
+        if (index > (size - 1) || index < 0) { // 检查索引是否超出范围
+            return -1; // 如果超出范围，返回-1
+        }
+        int num;
+        int mid = size >> 1; // 计算链表中部位置
+        DList *curNode = sentinelNode; // 从哨兵节点开始
+        if (index < mid) { // 如果索引小于中部位置，从前往后遍历
+            for (int i = 0; i < index + 1; i++) {
+                curNode = curNode->next; // 移动到目标节点
+            }
+        } else { // 如果索引大于等于中部位置，从后往前遍历
+            for (int i = 0; i < size - index; i++) {
+                curNode = curNode->prev; // 移动到目标节点
+            }
+        }
+        num = curNode->elem; // 获取目标节点的值
+        return num; // 返回节点的值
+    }
+
+    // 在链表头部添加节点
+    void addAtHead(int val) {
+        DList *newNode = new DList(val); // 创建新节点
+        DList *next = sentinelNode->next; // 获取当前头节点的下一个节点
+        newNode->prev = sentinelNode; // 新节点的上一个节点指向哨兵节点
+        newNode->next = next; // 新节点的下一个节点指向原来的头节点
+        size++; // 链表大小加1
+        sentinelNode->next = newNode; // 哨兵节点的下一个节点指向新节点
+        next->prev = newNode; // 原来的头节点的上一个节点指向新节点
+    }
+
+    // 在链表尾部添加节点
+    void addAtTail(int val) {
+        DList *newNode = new DList(val); // 创建新节点
+        DList *prev = sentinelNode->prev; // 获取当前尾节点的上一个节点
+        newNode->next = sentinelNode; // 新节点的下一个节点指向哨兵节点
+        newNode->prev = prev; // 新节点的上一个节点指向原来的尾节点
+        size++; // 链表大小加1
+        sentinelNode->prev = newNode; // 哨兵节点的上一个节点指向新节点
+        prev->next = newNode; // 原来的尾节点的下一个节点指向新节点
+    }
+
+    // 在链表中的第index个节点之前添加值为val的节点
+    void addAtIndex(int index, int val) {
+        if (index > size) { // 检查索引是否超出范围
+            return; // 如果超出范围，直接返回
+        }
+        if (index <= 0) { // 如果索引为0或负数，在头部添加节点
+            addAtHead(val);
+            return;
+        }
+        int num;
+        int mid = size >> 1; // 计算链表中部位置
+        DList *curNode = sentinelNode; // 从哨兵节点开始
+        if (index < mid) { // 如果索引小于中部位置，从前往后遍历
+            for (int i = 0; i < index; i++) {
+                curNode = curNode->next; // 移动到目标位置的前一个节点
+            }
+            DList *temp = curNode->next; // 获取目标位置的节点
+            DList *newNode = new DList(val); // 创建新节点
+            curNode->next = newNode; // 在目标位置前添加新节点
+            temp->prev = newNode; // 目标位置的节点的前一个节点指向新节点
+            newNode->next = temp; // 新节点的下一个节点指向目标位置的结点
+            newNode->prev = curNode; // 新节点的上一个节点指向当前节点
+        } else { // 如果索引大于等于中部位置，从后往前遍历
+            for (int i = 0; i < size - index; i++) {
+                curNode = curNode->prev; // 移动到目标位置的后一个节点
+            }
+            DList *temp = curNode->prev; // 获取目标位置的节点
+            DList *newNode = new DList(val); // 创建新节点
+            curNode->prev = newNode; // 在目标位置后添加新节点
+            temp->next = newNode; // 目标位置的节点的下一个节点指向新节点
+            newNode->prev = temp; // 新节点的上一个节点指向目标位置的节点
+            newNode->next = curNode; // 新节点的下一个节点指向当前节点
+        }
+        size++; // 链表大小加1
+    }
+
+    // 删除链表中的第index个节点
+    void deleteAtIndex(int index) {
+        if (index > (size - 1) || index < 0) { // 检查索引是否超出范围
+            return; // 如果超出范围，直接返回
+        }
+        int num;
+        int mid = size >> 1; // 计算链表中部位置
+        DList *curNode = sentinelNode; // 从哨兵节点开始
+        if (index < mid) { // 如果索引小于中部位置，从前往后遍历
+            for (int i = 0; i < index; i++) {
+                curNode = curNode->next; // 移动到目标位置的前一个节点
+            }
+            DList *next = curNode->next->next; // 获取目标位置的下一个节点
+            curNode->next = next; // 删除目标位置的节点
+            next->prev = curNode; // 目标位置的下一个节点的前一个节点指向当前节点
+        } else { // 如果索引大于等于中部位置，从后往前遍历
+            for (int i = 0; i < size - index - 1; i++) {
+                curNode = curNode->prev; // 移动到目标位置的后一个节点
+            }
+            DList *prev = curNode->prev->prev; // 获取目标位置的下一个节点
+            curNode->prev = prev; // 删除目标位置的节点
+            prev->next = curNode; // 目标位置的下一个节点的下一个节点指向当前节点
+        }
+        size--; // 链表大小减1
+    }
+
+private:
+    int size; // 链表的大小
+    DList *sentinelNode; // 哨兵节点的指针
+};
+```
+
+Python版本
+
+```python
+#（版本一）单链表法
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val#节点存储的值
+        self.next = next#节点的next指针，指向下一个节点
+        
+class MyLinkedList:
+    def __init__(self):
+        self.dummy_head = ListNode()
+        self.size = 0
+
+    def get(self, index: int) -> int:
+        if index < 0 or index >= self.size:
+            return -1 
+        current = self.dummy_head.next
+        for i in range(index):
+            current = current.next     
+        return current.val
+
+    def addAtHead(self, val: int) -> None:
+        self.dummy_head.next = ListNode(val, self.dummy_head.next)
+        #创建一个新节点值为val，这个新节点的next指针指向self.dummy_head.next
+        #self.dummy_head是类的实例属性
+        self.size += 1
+
+    def addAtTail(self, val: int) -> None:
+        current = self.dummy_head
+        while current.next:
+            current = current.next
+        current.next = ListNode(val)
+        self.size += 1
+
+    def addAtIndex(self, index: int, val: int) -> None:
+        if index < 0 or index > self.size:
+            return
+        current = self.dummy_head
+        for i in range(index):
+            current = current.next
+        current.next = ListNode(val, current.next)
+        self.size += 1
+
+    def deleteAtIndex(self, index: int) -> None:
+        if index < 0 or index >= self.size:
+            return
+        current = self.dummy_head
+        for i in range(index):
+            current = current.next
+        current.next = current.next.next
+        self.size -= 1
+```
+
+### 反转链表
+
+```plain
+#题目
+
+已知单链表的头节点head，请反转链表，并返回反转后的链表
+例如	输入head=[1,2,3,4,5]	输出：[5,4,3,2,1]
+```
+
+#### 思路
+
+定义一个新的链表来实现链表元素的反转的话是对内存空间的浪费
+
+只需要改变链表的next指针指向就可以直接将链表反转，而不用重新定义一个新的链表
+
+![206_反转链表](https://file1.kamacoder.com/i/algo/20210218090901207.png)
+
+用实例中的链表举例
+
+1. 定义一个cur指针，指向头节点；再定义一个pre指针，初始化为null
+2. 首先把cur->next节点用tmp指针保存一下，即保存一下这个指针
+3. 接着改变cur->next的指向，将cur->next指向pre，此时反转了第一个节点
+4. 循环走如下代码逻辑，继续移动pre和cur指针
+5. 最后，cur指针指向了null，循环结束，链表反转完毕
+
+#### 双指针法
+
+```c++
+class Solution {
+public:
+    ListNode* reverseList(ListNode* head) {
+        ListNode* temp; // 保存cur的下一个节点
+        ListNode* cur = head;
+        ListNode* pre = NULL;
+        while(cur) {//当cur不是NULL时执行循环语句的内容
+            temp = cur->next;  // 保存一下 cur的下一个节点，因为接下来要改变cur->next
+            cur->next = pre; // 翻转操作
+            // 更新pre 和 cur指针
+            pre = cur;
+            cur = temp;
+        }
+        return pre;
+    }
+};
+```
+
+#### 递归法
+
+递归法利用双指针的原理，同样是当cur为空的时候循环结束，不断将cur指向pre
+
+```c++
+//定义链表的节点类
+struct ListNode {
+    int val;
+    ListNode *next;
+    ListNode(int x) : val(x), next(NULL) {}
+};
+
+//递归法其一，同双指针法原理
+class Solution {
+public:
+    ListNode* reverse(ListNode* pre,ListNode* cur){
+        if(cur == NULL) return pre;
+        ListNode* temp = cur->next;
+        cur->next = pre;
+        // 可以和双指针法的代码进行对比，如下递归的写法，其实就是做了这两步
+        // pre = cur;
+        // cur = temp;
+        return reverse(cur,temp);
+    }
+    ListNode* reverseList(ListNode* head) {
+        // 和双指针法初始化是一样的逻辑
+        // ListNode* cur = head;
+        // ListNode* pre = NULL;
+        return reverse(NULL, head);
+    }
+
+};
+
+//递归法其二
+//链表例子：1 -> 2 -> 3 -> NULL
+class Solution {
+public:
+    ListNode* reverseList(ListNode* head) {
+        // 1. 边缘条件判断：空链表直接返回NULL
+        if(head == NULL) return NULL;
+        // 2. 递归终止条件：只剩一个节点时，它就是反转后的头节点，直接返回
+        if (head->next == NULL) return head;
+        
+        // 3. 递归调用：反转「当前节点后面的所有节点」
+        ListNode *last = reverseList(head->next);
+        /* 关键解释：
+           - 对于 head=1，调用 reverseList(2)；
+           - 对于 head=2，调用 reverseList(3)；
+           - 对于 head=3，触发终止条件，返回 3（此时 last=3）；
+           这一步的目的是：先把后面的子链表反转好，拿到反转后的子链表头节点 last。
+        */
+        
+        // 4. 核心反转：把当前节点接到「反转后子链表的末尾」，局部反转
+        head->next->next = head;
+        /* 关键解释：
+           - 以 head=2 为例：此时 head->next=3，这行代码就是 3->next=2；
+           - 以 head=1 为例：此时 head->next=2（已经被反转过），这行代码就是 2->next=1；
+           这一步完成了「当前节点」和「下一个节点」的指向反转。
+        */
+        
+        // 5. 收尾：让当前节点成为新的尾节点（避免形成环）
+        head->next = NULL;
+        /* 关键解释：
+           - 以 head=2 为例：把 2->next 置空，此时 2 是反转后子链表（3->2）的尾节点；
+           - 以 head=1 为例：把 1->next 置空，此时 1 是最终链表（3->2->1）的尾节点；
+           如果不置空，会出现 1->2->1 的环，导致链表出错。
+        */
+        
+        // 6. 返回反转后的总头节点（始终是原链表的最后一个节点）
+        return last;
+    }
+};
+```
+
+Python版本
+
+```python
+class ListNode:
+     def __init__(self, val=0, next=None):
+         self.val = val
+         self.next = next
+
+#双指针法
+class Solution:
+    def reverseList(self, head: ListNode) -> ListNode:
+        cur = head   
+        pre = None
+        while cur:
+            temp = cur.next # 保存一下 cur的下一个节点，因为接下来要改变cur->next
+            cur.next = pre #反转
+            #更新pre、cur指针
+            pre = cur
+            cur = temp
+        #循环结束时的cur为None，则pre为链表的头节点，返回pre即可
+        return pre
+
+#递归法
+class Solution:
+    def reverseList(self, head: ListNode) -> ListNode:
+        return self.reverse(head, None)
+    def reverse(self, cur: ListNode, pre: ListNode) -> ListNode:
+        if cur == None:
+            return pre
+        temp = cur.next
+        cur.next = pre
+        return self.reverse(temp, cur)
+```
 
 ### 两两交换链表中的节点
 
+```plain
+#题目
 
+给定一个链表，两两交换其中相邻的节点，返回交换后的链表
+不能单纯的改变节点内部的值，需要实际的进行节点交换
+
+输入；head=[1,2,3,4]	输出：[2,1,4,3]
+```
+
+#### 思路
+
+使用虚拟头节点，不满每次针对头节点（没有前一个指针指向头节点）还要单独处理
+
+初始时，cur指向虚拟头结点，然后进行如下三步：
+
+![24.两两交换链表中的节点1](https://file1.kamacoder.com/i/algo/24.%E4%B8%A4%E4%B8%A4%E4%BA%A4%E6%8D%A2%E9%93%BE%E8%A1%A8%E4%B8%AD%E7%9A%84%E8%8A%82%E7%82%B91.png)
+
+操作之后，链表如下：
+
+![24.两两交换链表中的节点2](https://file1.kamacoder.com/i/algo/24.%E4%B8%A4%E4%B8%A4%E4%BA%A4%E6%8D%A2%E9%93%BE%E8%A1%A8%E4%B8%AD%E7%9A%84%E8%8A%82%E7%82%B92.png)
+
+看这个可能就更直观一些了：
+
+![24.两两交换链表中的节点3](https://file1.kamacoder.com/i/algo/24.%E4%B8%A4%E4%B8%A4%E4%BA%A4%E6%8D%A2%E9%93%BE%E8%A1%A8%E4%B8%AD%E7%9A%84%E8%8A%82%E7%82%B93.png)
+
+```c++
+class Solution {
+public:
+    ListNode* swapPairs(ListNode* head) {
+        ListNode* dummyHead = new ListNode(0); // 设置一个虚拟头结点
+        dummyHead->next = head; // 将虚拟头结点指向head，这样方便后面做删除操作
+        ListNode* cur = dummyHead;
+        while(cur->next != nullptr && cur->next->next != nullptr) {
+            ListNode* tmp = cur->next; // 记录临时节点
+            ListNode* tmp1 = cur->next->next->next; // 记录临时节点
+
+            cur->next = cur->next->next;    // 步骤一
+            cur->next->next = tmp;          // 步骤二
+            cur->next->next->next = tmp1;   // 步骤三
+
+            cur = cur->next->next; // cur移动两位，准备下一轮交换
+        }
+        ListNode* result = dummyHead->next;
+        delete dummyHead;
+        return result;
+    }
+};
+```
 
 ### 删除链表的倒数第N个节点
 
