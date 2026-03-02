@@ -2167,8 +2167,9 @@ public:
     ListNode* swapPairs(ListNode* head) {
         ListNode* dummyHead = new ListNode(0); // 设置一个虚拟头结点
         dummyHead->next = head; // 将虚拟头结点指向head，这样方便后面做删除操作
-        ListNode* cur = dummyHead;
-        while(cur->next != nullptr && cur->next->next != nullptr) {
+        ListNode* cur = dummyHead;//初始化cur指针指向虚拟头节点
+        while(cur->next != nullptr && cur->next->next != nullptr) {//注意条件顺序，此语句用于判断偶数个节点的下一个节点为null，奇数个节点的下下一个节点为null，此时停止循环
+            //为什么要记录两个临时节点：因为做交换时需要先锁定交换对的前置节点，前置节点的next应该为交换对中的后面那个，建立指向后，后面那个节点断开了交换对的节点指向连接和后一个指向连接，同时要作为下一个交换对的前置节点
             ListNode* tmp = cur->next; // 记录临时节点
             ListNode* tmp1 = cur->next->next->next; // 记录临时节点
 
@@ -2185,23 +2186,507 @@ public:
 };
 ```
 
+Python版本
+
+```python
+#定义节点类
+class ListNode:
+     def __init__(self, val=0, next=None):
+         self.val = val
+         self.next = next
+
+##递归算法
+#递归的本质是把大问题拆解成同类型的小问题，这段代码每次只处理当前链表的前两个节点的交换，把后续剩余链表的两两交换交给递归函数处理直到遇到终止条件（链表空/只剩一个节点）时停止递归并返回
+class Solution:
+    def swapPairs(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        #递归出口，避免无限递归
+        if head is None or head.next is None:
+            return head
+
+        # 待翻转的两个node分别是pre和cur
+        pre = head
+        cur = head.next
+        #保存下一轮递归的入口
+        next = head.next.next
+        
+        cur.next = pre  # 交换
+        # 将以next为head的后续链表两两交换 ，递归调用swapPairs()，并等待返回结果，再赋值给节点的next
+        pre.next = self.swapPairs(next)        
+        return cur
+
+    
+##另一个版本（c++版本的python形式）
+class Solution:
+    def swapPairs(self, head: ListNode) -> ListNode:
+        dummy_head = ListNode(next=head)#定义并初始化一个虚拟头节点，创建一个新的ListNode实例通过关键字参数next=head把这个虚拟头节点的next指针指向原链表的真实头节点head
+        current = dummy_head
+        
+        # 必须有cur的下一个和下下个才能交换，否则说明已经交换结束了
+        while current.next and current.next.next:
+            temp = current.next # 防止节点修改
+            temp1 = current.next.next.next
+            
+            current.next = current.next.next
+            current.next.next = temp
+            temp.next = temp1
+            current = current.next.next
+        return dummy_head.next
+```
+
 ### 删除链表的倒数第N个节点
 
+```plain
+#题目
 
+给定一个链表，删除链表的倒数第n个节点，并且返回链表的头节点
+```
+
+##### 思路
+
+如果要删除倒数第n个节点，让fast移动n步，然后让fast和slow同时移动，直到fast指向链表末尾。删掉slow所指向的节点就可以了
+
+分为如下几步：
+
+- 使用虚拟头结点，这样方便处理删除实际头结点的逻辑
+- 定义fast指针和slow指针，初始值为虚拟头结点，如图：
+
+![img](https://file1.kamacoder.com/i/algo/19.%E5%88%A0%E9%99%A4%E9%93%BE%E8%A1%A8%E7%9A%84%E5%80%92%E6%95%B0%E7%AC%ACN%E4%B8%AA%E8%8A%82%E7%82%B9.png)
+
+- fast首先走n + 1步 ，为什么是n+1呢，因为只有这样同时移动的时候slow才能指向删除节点的上一个节点（方便做删除操作），如图： ![img](https://file1.kamacoder.com/i/algo/19.%E5%88%A0%E9%99%A4%E9%93%BE%E8%A1%A8%E7%9A%84%E5%80%92%E6%95%B0%E7%AC%ACN%E4%B8%AA%E8%8A%82%E7%82%B91.png)
+- fast和slow同时移动，直到fast指向末尾，如图： ![img](https://file1.kamacoder.com/i/algo/19.%E5%88%A0%E9%99%A4%E9%93%BE%E8%A1%A8%E7%9A%84%E5%80%92%E6%95%B0%E7%AC%ACN%E4%B8%AA%E8%8A%82%E7%82%B92.png) 
+- 删除slow指向的下一个节点，如图： ![img](https://file1.kamacoder.com/i/algo/19.%E5%88%A0%E9%99%A4%E9%93%BE%E8%A1%A8%E7%9A%84%E5%80%92%E6%95%B0%E7%AC%ACN%E4%B8%AA%E8%8A%82%E7%82%B93.png)
+
+C++代码：
+
+```cpp
+class Solution {
+public:
+    ListNode* removeNthFromEnd(ListNode* head, int n) {
+        ListNode* dummyHead = new ListNode(0);
+        dummyHead->next = head;
+        ListNode* slow = dummyHead;
+        ListNode* fast = dummyHead;
+        //可以倒着想：快指针每前进一步的依据是倒数第n个节点中的n在从最后空指针null开始向后移动，fast由dummyhead到链表第1个节点即null到倒数第一个指针；n=0时，fast走了n步，应该指向的是第n个节点，比low快了n步，此时如果快慢指针同时移动，fast要走到null，需要sz-n+1步，此时low也走了这么多步，但不幸的是要删除倒数第n个节点即删除正数第sz-n+1个节点，而此时low指向的就是要删除的节点，这是不对的，要指向需删除节点的前一个节点才能实现删除该节点，因此在快慢指针同时移动前，快指针要比low快n+1步，因此fast要在while循环结束后再多走一步
+        while(n-- && fast != NULL) {
+            fast = fast->next;
+        }
+        fast = fast->next; // fast再提前走一步，因为需要让slow指向删除节点的上一个节点
+        while (fast != NULL) {
+            fast = fast->next;
+            slow = slow->next;
+        }
+        slow->next = slow->next->next; 
+        
+        // ListNode *tmp = slow->next;  C++释放内存的逻辑
+        // slow->next = tmp->next;
+        // delete tmp;
+        
+        return dummyHead->next;
+    }
+};
+```
+
+Python代码
+
+```python
+#快慢指针法
+class Solution:
+    def removeNthFromEnd(self, head: ListNode, n: int) -> ListNode:
+        # 创建一个虚拟节点，并将其下一个指针设置为链表的头部
+        dummy_head = ListNode(0, head)
+        
+        # 创建两个指针，慢指针和快指针，并将它们初始化为虚拟节点
+        slow = fast = dummy_head
+        
+        # 快指针比慢指针快 n+1 步
+        for i in range(n+1):
+            fast = fast.next
+        
+        # 移动两个指针，直到快速指针到达链表的末尾
+        while fast:
+            slow = slow.next
+            fast = fast.next
+        
+        # 通过更新第 (n-1) 个节点的 next 指针删除第 n 个节点
+        slow.next = slow.next.next
+        
+        return dummy_head.next
+    
+#转倒数为正数法
+class Solution:
+    def removeNthFromEnd(self, head: ListNode, n: int) -> ListNode:
+        # 步骤1：创建虚拟头节点，统一删除逻辑（包括删除原头节点的情况）
+        dummy_head = ListNode(0, head)
+        
+        # 步骤2：统计链表的总节点数 sz
+        sz = 0
+        current = head  # 从真实头节点开始统计
+        while current is not None:
+            sz += 1
+            current = current.next
+        
+        # 步骤3：找到要删除节点的「前驱节点」（用t计数控制移动）
+        cur = dummy_head  # 从虚拟头节点开始移动
+        t = 0  # 初始化计数器t
+        # 循环条件：t < sz - n （移动到要删除节点的前驱位置）
+        # 解释：sz-n 是前驱节点的位置（从0开始数），比如sz=5，n=2，sz-n=3，cur移动到第3个位置（t=3）
+        while t < sz - n:
+            cur = cur.next
+            t += 1
+        
+        # 步骤4：删除目标节点（跳过cur的下一个节点）
+        cur.next = cur.next.next
+        
+        # 步骤5：返回新链表的头节点（虚拟头的下一个）
+        return dummy_head.next
+```
 
 ### 链表相交
 
+```plain
+#题目
 
+给你两个单链表的头节点 headA 和 headB ，请你找出并返回两个单链表相交的起始节点。如果两个链表没有交点，返回 null 。
+题目数据保证整个链式结构中不存在环，函数返回结果后链表必须保持原始结构
+```
+
+#### 思路
+
+注意链表相交的定义⚠️：**节点的内存地址相同**，即==两个链表共享同一个物理节点==，一旦两个链表相交，从相交节点开始后面的所有节点必然都是同一个（因为节点的`next`指针指向的是固定地址），不可能出现交点后节点不重合的情况
+
+本题就是求两个链表交点节点的指针	交点不是数值相等而是**指针**相等（同一个内存地址的节点）
+
+利用**==相交链表的尾部一定重合==**来解决**两个链表起点不同，无法直接同时遍历找交点**
+
+为了方便举例，假设节点元素数值相等，则节点指针相等。
+
+看如下两个链表，目前curA指向链表A的头结点，curB指向链表B的头结点：
+
+![面试题02.07.链表相交_1](https://file1.kamacoder.com/i/algo/%E9%9D%A2%E8%AF%95%E9%A2%9802.07.%E9%93%BE%E8%A1%A8%E7%9B%B8%E4%BA%A4_1.png)
+
+求出两个链表的长度，并求出两个链表长度的差值gap，然后让curA移动gap步，实现两个链表的指针尾部对齐（即两个指针到链表末尾的节点数完全相同），如图：
+
+![面试题02.07.链表相交_2](https://file1.kamacoder.com/i/algo/%E9%9D%A2%E8%AF%95%E9%A2%9802.07.%E9%93%BE%E8%A1%A8%E7%9B%B8%E4%BA%A4_2.png)
+
+此时我们就可以比较curA和curB是否相同，如果不相同，同时向后移动curA和curB，如果遇到curA == curB，则找到交点。
+
+> 解释一下：两个指针已经实现了尾部对齐，同时让两个指针向后遍历，指针相等的第一个节点就是相交节点
+
+否则循环退出返回空指针。
+
+C++代码
+
+```c++
+class Solution {
+public:
+    ListNode *getIntersectionNode(ListNode *headA, ListNode *headB) {
+        ListNode* curA = headA;
+        ListNode* curB = headB;
+        int lenA = 0, lenB = 0;
+        while (curA != NULL) { // 求链表A的长度
+            lenA++;
+            curA = curA->next;
+        }
+        while (curB != NULL) { // 求链表B的长度
+            lenB++;
+            curB = curB->next;
+        }
+        curA = headA;
+        curB = headB;
+        //不论链表A和B谁长谁短，强制让curA指向更长的链表，简化了逻辑，便于统一处理
+        //比如B比A长，则把B的长度给A，让curA指向B的头；同样对B操作
+        if (lenB > lenA) {
+            swap (lenA, lenB);
+            swap (curA, curB);
+        }
+        // 求长度差
+        int gap = lenA - lenB;
+        // 让curA和curB在同一起点上（末尾位置对齐）
+        while (gap--) {
+            curA = curA->next;
+        }
+        // 遍历curA 和 curB，遇到相同则直接返回
+        while (curA != NULL) {
+            if (curA == curB) {
+                return curA;
+            }
+            curA = curA->next;
+            curB = curB->next;
+        }
+        return NULL;
+    }
+};
+```
+
+Python代码
+
+```python
+#同时出发，代码复用，在函数内部调用别的函数，简化代码
+class Solution:
+    def getIntersectionNode(self, headA: ListNode, headB: ListNode) -> ListNode:
+        lenA = self.getLength(headA)
+        lenB = self.getLength(headB)
+        
+        # 通过移动较长的链表，使两链表长度相等
+        if lenA > lenB:
+            headA = self.moveForward(headA, lenA - lenB)
+        else:
+            headB = self.moveForward(headB, lenB - lenA)
+        
+        # 将两个头向前移动，直到它们相交
+        while headA and headB:
+            if headA == headB:
+                return headA
+            headA = headA.next
+            headB = headB.next
+        
+        return None
+
+    #求链表的长度    
+    def getLength(self, head: ListNode) -> int:
+        length = 0
+        while head:
+            length += 1
+            head = head.next
+        return length
+    
+    #根据两个链表长度的差值向前移动较长链表的指针，实现指针的尾部对齐
+    def moveForward(self, head: ListNode, steps: int) -> ListNode:
+        while steps > 0:
+            head = head.next
+            steps -= 1
+        return head
+    
+#等比例法
+#两个指针pointerA、pointerB 分别从 headA、headB 出发，遍历到自身链表末尾后，切换到另一个链表的头部继续遍历。
+#循环的核心：指针没到末尾则向后走，到末尾则切换到另一个链表的头；循环终止条件是指针相等（交点或者都为None），如果链表相交则两个指针会在相交节点相遇，不相交则会同时走到None，总路程均相等
+class Solution:
+    def getIntersectionNode(self, headA: ListNode, headB: ListNode) -> ListNode:
+        # 处理边缘情况（空链表），如果任意一个链表为空则不可能有相交节点，直接返回None
+        if not headA or not headB:
+            return None
+        
+        # 在每个链表的头部初始化两个指针
+        pointerA = headA
+        pointerB = headB
+        
+        # 遍历两个链表直到指针相交
+        while pointerA != pointerB:
+            # 将指针向前移动一个节点
+            pointerA = pointerA.next if pointerA else headB
+            pointerB = pointerB.next if pointerB else headA
+        
+        # 如果相交，指针将位于交点节点，如果没有交点，值为None
+        return pointerA
+#Python的三元表达式 a = b if c else d 等价于
+#if c:
+#	a = b
+#else:
+#	a = d
+```
 
 ### 环形链表II
 
+```plain
+#题目
 
+给定一个链表的头节点head，返回链表开始入环的第一个节点。如果链表无环，则返回null。
+
+如果链表中有某个节点，可以通过连续跟踪 next 指针再次到达，则链表中存在环。 为了表示给定链表中的环，评测系统内部使用整数 pos 来表示链表尾连接到链表中的位置（索引从 0 开始）。如果 pos 是 -1，则在该链表中没有环。注意：pos 不作为参数进行传递，仅仅是为了标识链表的实际情况。
+
+不允许修改 链表。
+```
+
+#### 思路
+
+既然是环形，就可以考虑快慢指针，快指针能否追上慢指针，如果可以的话那就说明链表示环形的。定义`fast`和`slow`指针，从头节点出发，fast每次移动两个节点，slow每次移动一个节点，如果fast和slow指针在途中相遇这说明这个链表有环
+
+fast指针一定先进入环中，如果fast指针和slow指针相遇的话，一定是在环中相遇的
+
+画一个环，然后让 fast指针在任意一个节点开始追赶slow指针。
+
+会发现最终都是这种情况， 如下图：
+
+![142环形链表1](https://file1.kamacoder.com/i/algo/20210318162236720.png)
+
+fast和slow各自再走一步， fast和slow就相遇了
+
+这是因为fast是走两步，slow是走一步，**其实相对于slow来说，fast是一个节点一个节点的靠近slow的**，所以fast一定可以和slow重合。
+
+动画如下：
+
+![141.环形链表](https://file1.kamacoder.com/i/algo/141.%E7%8E%AF%E5%BD%A2%E9%93%BE%E8%A1%A8.gif)
+
+此时已经能判断链表是否有环了，接下来要找到这个环的入口
+
+假设从头节点到环形入口节点的节点数为x；环形入口节点到fast指针与slow指针相遇节点的节点数为y。从相遇节点再到环形入口节点的节点数为z
+
+![20220925103433](https://file1.kamacoder.com/i/algo/20220925103433.png)
+
+那么相遇时： slow指针走过的节点数为: `x + y`， fast指针走过的节点数：`x + y + n (y + z)`，n为fast指针在环内走了n圈才遇到slow指针， （y+z）为 一圈内节点的个数A。
+
+> 为什么第一次在环中相遇，slow的步数是x+y而不是x+若干个环的长度+y呢
+>
+> 需要厘清如下三点：
+>
+> 1. **速度差**：fast一次走2步，slow一次走1步，fast相对于slow的速度是1步/次
+> 2. **入环顺序**：fast速度更快，一定是fast先入环，slow后入环
+> 3. **环的闭合性**：slow刚入环时，fast和slow之间的追击距离一定小于环的长度，那么可以看作slow静止，fast以1步/次的速度去追slow，所需要的次数绝对小于环的长度，再让slow动起来，说明slow走的路程绝对小于环的长度——>可以得到slow进环后走不足1圈就会被追上
+
+因为fast指针是一步走两个节点，slow指针一步走一个节点， 所以 fast指针走过的节点数 = slow指针走过的节点数 * 2：
+
+```
+(x + y) * 2 = x + y + n (y + z)
+```
+
+两边消掉一个（x+y）: `x + y = n (y + z)`
+
+因为要找环形的入口，那么要求的是x，因为x表示 头结点到 环形入口节点的的距离。
+
+所以要求x ，将x单独放在左面：`x = n (y + z) - y` ,
+
+再从n(y+z)中提出一个 （y+z）来，整理公式之后为如下公式：`x = (n - 1) (y + z) + z` 注意这里n一定是大于等于1的，因为 fast指针至少要多走一圈才能相遇slow指针。
+
+这个公式说明什么呢？
+
+先拿n为1的情况来举例，意味着fast指针在环形里转了一圈之后，就遇到了 slow指针了。
+
+当 n为1的时候，公式就化解为 `x = z`，
+
+这就意味着，**从头结点出发一个指针，从相遇节点 也出发一个指针，这两个指针每次只走一个节点， 那么当这两个指针相遇的时候就是 环形入口的节点**。
+
+也就是在相遇节点处，定义一个指针index1，在头结点处定一个指针index2。
+
+让index1和index2同时移动，每次移动一个节点， 那么他们相遇的地方就是 环形入口的节点。
+
+动画如下：
+
+![142.环形链表II（求入口）](https://file1.kamacoder.com/i/algo/142.%E7%8E%AF%E5%BD%A2%E9%93%BE%E8%A1%A8II%EF%BC%88%E6%B1%82%E5%85%A5%E5%8F%A3%EF%BC%89.gif)
+
+那么 n如果大于1是什么情况呢，就是fast指针在环形转n圈之后才遇到 slow指针。
+
+其实这种情况和n为1的时候 效果是一样的，一样可以通过这个方法找到 环形的入口节点，只不过，index1 指针在环里 多转了(n-1)圈，然后再遇到index2，相遇点依然是环形的入口节点。
+
+代码如下：
+
+```c++
+//定义链表结构体
+struct ListNode {
+     int val;
+     ListNode *next;
+     ListNode(int x) : val(x), next(NULL) {}
+};
+
+class Solution {
+public:
+    ListNode *detectCycle(ListNode *head) {
+        ListNode* fast = head;
+        ListNode* slow = head;
+        //因为fast指针是走两步的，所以需要确保fast指向的节点不为空，fast的下一个节点也不为空
+        while(fast != NULL && fast->next != NULL) {
+            slow = slow->next;
+            fast = fast->next->next;
+            // 快慢指针相遇，此时从head 和 相遇点，同时查找直至相遇
+            if (slow == fast) {
+                ListNode* index1 = fast;//标记相遇点
+                ListNode* index2 = head;//标记头节点
+                while (index1 != index2) {
+                    index1 = index1->next;
+                    index2 = index2->next;
+                }
+                return index2; // 返回环的入口
+            }
+        }
+        return NULL;
+    }
+};
+
+//时间复杂度O(n)，快慢指针相遇前，指针走的次数小于链表长度，快慢指针相遇后，两个index指针走的次数也小于链表长度，总体为走的次数小于2n
+```
+
+Python代码
+
+```python
+class ListNode:
+    def __init__(self,x):
+        self.val = x
+        self.next = None
+        
+#快慢指针法
+class Solution:
+    def detectCycle(self, head: ListNode) -> ListNode:
+        slow = head
+        fast = head
+        
+        while fast and fast.next:
+            slow = slow.next
+            fast = fast.next.next
+            
+            # If there is a cycle, the slow and fast pointers will eventually meet
+            if slow == fast:
+                # Move one of the pointers back to the start of the list
+                slow = head
+                while slow != fast:
+                    slow = slow.next
+                    fast = fast.next
+                return slow
+        # If there is no cycle, return None
+        return None
+    
+#集合法
+class Solution:
+    def detectCycle(self, head: ListNode) -> ListNode:
+        visited = set()
+        
+        while head:
+            if head in visited:
+                return head#如果在集合中访问到了节点，那么就是环形的头节点
+            visited.add(head)#将不在集合中的节点加入到集合之中
+            head = head.next
+        
+        return None
+```
 
 ### 链表__总结
 
+#### 虚拟头节点
 
+链表的一大问题就是操作当前节点必须要找前一个节点才能操作，但是头节点没有前一个节点
 
+**每次对应头节点的情况都要单独处理，所以使用虚拟头节点就可以几觉这个问题**
 
+#### 链表的基本操作
+
+- 获取链表第index个节点的数值
+- 在链表的最前面插入一个节点
+- 在链表的最后面插入一个节点
+- 在链表第index个节点前面插入一个节点
+- 删除链表的第index个节点的数值
+
+#### 反转链表
+
+迭代法&&递归法
+
+#### 删除倒数第N个节点
+
+虚拟头节点+双指针法
+
+#### 链表相交
+
+双指针法找到两个链表的交点（引用完全相同，即内存地址完全相同的交点）
+链表相交的物理意义是：**两个链表在某个节点处合并成了一个链**，本质就是共享后续节点，这是只有在**地址相同**时才成立的。
+
+> 链表的每个`ListNode`节点在计算机中是一块独立的内存空间，每个节点的地址在内存中是独一无二的，节点的`val`是可以重复的，节点的`next`指针里存储的是**下一个节点的内存地址**
+> 总结；一个链表节点，由**唯一的内存地址+可重复的val+存下一个地址的next指针**组成，计算机识别节点的唯一依据是内存地址
+>
+> 两个链表交点的定义是链表A和链表B在遍历过程中走到了**同一个内存地址**的节点，即两个链表共享了**这个节点**以及这个节点**之后的所有节点**
+> 原因很简单：如果节点 C 是地址相同的交点，那么 C 的`next`指针里存的是下一个节点 D 的**唯一内存地址**，不管是从 A 链表访问`C.next`，还是从 B 链表访问`C.next`，得到的都是 D 的同一个地址，因此 D 也必然是共享节点，后续所有节点都会完全重合（地址都相同）。
+>
+> 代码判断两个节点是否是交点，用的是**直接比较节点变量**，这个判断的本质是比较节点的内存地址/引用，而不是比较节点的val
+
+#### 环形链表
+
+代码简单，主要在于数学证明
 
 ---
 
