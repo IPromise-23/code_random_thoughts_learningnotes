@@ -225,7 +225,7 @@ if (N < 2) {
 
 数组的元素是不能删的,**只能覆盖**
 
-> 数组在内存里时连续、固定长度的存储空间,一旦创建则所占内存大小就固定了
+> 数组在内存里是连续、固定长度的存储空间,一旦创建则所占内存大小就固定了
 >
 > 数组的内存空间是固定的,没法真的移除某块内存里的元素,所谓“删除”指的是用后面的元素覆盖掉这个位置的内容
 >
@@ -2588,13 +2588,13 @@ public:
             fast = fast->next->next;
             // 快慢指针相遇，此时从head 和 相遇点，同时查找直至相遇
             if (slow == fast) {
-                ListNode* index1 = fast;//标记相遇点
+                ListNode* index1 = fast;//标记相遇点，也可以写成slow
                 ListNode* index2 = head;//标记头节点
                 while (index1 != index2) {
                     index1 = index1->next;
                     index2 = index2->next;
                 }
-                return index2; // 返回环的入口
+                return index2; // 返回环的入口，自然也可以写成index1
             }
         }
         return NULL;
@@ -2732,18 +2732,77 @@ class Solution:
 
 哈希碰撞有两种解决方法:
 
-- **拉链法**
+- **拉链法（链地址法）**
+
+  > 哈希表的底层是一个普通的**数组**，每个数组下标只能存放一个键值对。
+  > 哈希碰撞的本质是不同的key通过哈希函数计算后得到了**相同的数组下标**
+  > 拉链法就是把第一个到达哈希表中某个下标的元素作为**链表**的头节点存入，但后续元素哈希岛爱同一个位置时，就把这个元素**追加到该位置的链表末尾**；查找/删除元素时，先通过哈希函数定位对应的数组下标，再遍历对应下标内的链表来找到目标元素
+  >
+  > ```python
+  > #python模拟哈希碰撞中拉链法的实现
+  > class HashTable:
+  >     def __init__(self, size=10):
+  >         # 初始化哈希表：每个桶是一个空列表（模拟链表）
+  >         self.size = size#定义哈希表底层数组的长度（桶的数量）
+  >         #哈希表的核心存储结构_一个数组，数组中的每个元素都是空列表，用列表模拟链表
+  >         self.buckets = [[] for _ in range(self.size)]
+  >     
+  >     # 简单的哈希函数：取模运算
+  >     def _hash(self, key):#方法名前的_是Python的约定，代表是有方法，只在类内部用
+  >         #hash(key)是内置函数，把所有可哈希对象生成一个唯一的整数哈希值
+  >         #slif.size取模运算，把哈希值压缩
+  >         return hash(key) % self.size 
+  >     
+  >     # 插入元素
+  >     def put(self, key, value):
+  >         #定位桶，先调用_hash方法算出key对应的桶下标
+  >         bucket_index = self._hash(key)
+  >         #拿到对应的桶（列表/链表）
+  >         bucket = self.buckets[bucket_index]
+  >         
+  >         # 遍历桶里的元素，每个元素是(key,value)元组，检查key是否已存在，存在则更新值，保证一个key只有一个值
+  >         for i, (k, v) in enumerate(bucket):
+  >             if k == key:
+  >                 bucket[i] = (key, value)
+  >                 return
+  >         # 处理碰撞/新增，不存在则追加到链表末尾
+  >         bucket.append((key, value))
+  >     
+  >     # 获取元素
+  >     def get(self, key):
+  >         bucket_index = self._hash(key)
+  >         bucket = self.buckets[bucket_index]
+  >         
+  >         # 遍历桶内的链表找目标key
+  >         for k, v in bucket:
+  >             if k == key:
+  >                 return v
+  >         # 没找到返回None
+  >         return None
+  > 
+  > # 测试（修改后，确保碰撞）
+  > ht = HashTable()
+  > # 用数字key构造必然碰撞：5和15取模10都等于5，会放到同一个桶里
+  > ht.put(5, 5)
+  > ht.put(15, 10)  # 和5撞桶
+  > ht.put(25, 15)  # 继续撞桶
+  > ht.put("banana", 3)
+  > 
+  > print(ht.get(5))   # 输出：5
+  > print(ht.get(15))  # 输出：10
+  > print(ht.buckets)  # 能看到下标为5的桶里有3个元素！
+  > ```
 
   刚刚小李和小王在索引1的位置发生了冲突，发生冲突的元素都被存储在链表中。 这样我们就可以通过索引找到小李和小王了
 
   ![哈希表4](https://file1.kamacoder.com/i/algo/20210104235015226.png)
 
   数据规模是dataSize,哈希表的大小是tableSize
-  拉链法就是要选择适当的哈希表的大小,,这样既不会因为数组空值而浪费大量内存,也不会因为链表太长而在查找上浪费太多时间
+  拉链法就是要选择适当的哈希表的大小,这样既不会因为数组空值而浪费大量内存,也不会因为链表太长而在查找上浪费太多时间
 
 - **线性探测法**
-  使用线性探测法时一定要保证哈希表大小大于数据规模,需要依靠哈希表中的空位来解决碰撞问题
-  例如冲突的位置，放了小李，那么就向下找一个空位放置小王的信息。所以要求tableSize一定要大于dataSize ，要不然哈希表上就没有空置的位置来存放 冲突的数据了。如图所示：
+  使用线性探测法时一定要保证**哈希表大小大于数据规模**,需要**依靠哈希表中的空位**来解决碰撞问题
+  例如冲突的位置，放了小李，那么就**向下找一个空位**放置小王的信息。所以要求tableSize一定要大于dataSize ，要不然哈希表上就没有空置的位置来存放 冲突数据了。如图所示：
   ![哈希表5](https://file1.kamacoder.com/i/algo/20210104235109950.png)
 
 #### 常见的三种哈希结构
@@ -2922,8 +2981,8 @@ class Solution:
         for i in t:
             record[ord(i) - ord("a")] -= 1#在t字符串中出现则应该-1
         for i in range(26):
+            #record数组如果有的元素不为零0，说明字符串s和t一定是谁多了字符或者谁少了字符
             if record[i] != 0:
-                #record数组如果有的元素不为零0，说明字符串s和t 一定是谁多了字符或者谁少了字符。
                 return False
         return True
 
@@ -2964,9 +3023,11 @@ class Solution:
 class Solution {
 public:
     bool isAnagram(string s, string t) {
-        int record[26] = {0};
+        int record[26] = {0};//c++静态数组
         for (int i = 0; i < s.size(); i++) {
             // 并不需要记住字符a的ASCII，只要求出一个相对数值就可以了
+            // c++中字符char本质上就是一个整数，它存储的是该字符在ASCII表中的编码值
+            // python中字符str本身不是数字，必须先用ord()函数获取对应的Unicode码点
             record[s[i] - 'a']++;
         }
         for (int i = 0; i < t.size(); i++) {
@@ -2982,7 +3043,6 @@ public:
         return true;
     }
 };
-
 ```
 
 ### 两个数组的交集
@@ -3003,13 +3063,13 @@ public:
 
 当限制数值大小时,可以使用数组来做哈希的题目
 
-当哈希值比较少、特别分散、跨度非常大时,使用数组就造成了空间的极大浪费
+但是当哈希值比较少、特别分散、跨度非常大时,使用数组就造成了**空间的极大浪费**
 
 因此,本题更适合用set,`std::set`和`std::multiset`底层实现都是红黑树，`std::unordered_set`的底层实现是哈希表， 使用`unordered_set `读写效率是最高的，并不需要对数据进行排序，而且还不要让数据重复，所以选择`unordered_set`。
 
 ```c++
-#include <vector>   // 引入vector容器头文件，用于存储数组
-#include <unordered_set>  // 引入无序集合头文件，用于去重以及快速查找
+#include <vector>   // 引入vector容器头文件，是动态数组，用于存储输入数组和交集结果
+#include <unordered_set>  // 引入无序哈希集合头文件，用于去重以及快速查找
 
 using namespace std;  // 使用std命名空间，避免重复写std::
 
@@ -3026,6 +3086,7 @@ public:
         //    - 对nums1去重
         //    - 利用unordered_set O(1)的查找效率，比遍历数组快得多
         unordered_set<int> nums_set(nums1.begin(), nums1.end());
+        // 3. 遍历nums2的每一个元素，逐个检查是否在nums1的集合里
         for (int num : nums2) {
             // 发现nums2的元素 在nums_set里又出现过
             // nums_set.find(num)：查找元素num，返回指向该元素的迭代器；若不存在，返回end();这句if语句的意思是如果find()找回来的不是“没找到”的标志（end()），就说明找到了这个元素。
@@ -3033,6 +3094,8 @@ public:
                 result_set.insert(num);
             }
         }
+        // 4. 把结果集合转换成vector数组返回（因为函数要求返回vector类型）
+        // vector<int>(result_set.begin(), result_set.end())：把set的元素全部拷贝到vector里
         return vector<int>(result_set.begin(), result_set.end());
     }
 };
@@ -3042,8 +3105,8 @@ class Solution {
 public:
     vector<int> intersection(vector<int>& nums1, vector<int>& nums2) {
         unordered_set<int> result_set; // 存放结果，之所以用set是为了给结果集去重
-        int hash[1005] = {0}; // 默认数值为0
-        for (int num : nums1) { // nums1中出现的字母在hash数组中做记录
+        int hash[1005] = {0}; // 定义一个数组，默认数值为0，为了防止越界，题目要求num在0——1000内，取1005个索引构成的数组
+        for (int num : nums1) { // nums1中出现的数字在hash数组中做记录
             hash[num] = 1;
         }
         for (int num : nums2) { // nums2中出现话，result记录
@@ -3126,7 +3189,7 @@ class Solution:
 
 编写一个算法来判断一个数 n 是不是快乐数。
 
-「快乐数」定义为：
+「快乐数」定义：
 
 对于一个正整数，每一次将该数替换为它每个位置上的数字的平方和。
 然后重复这个过程直到这个数变为 1，也可能是 无限循环 但始终变不到 1。
@@ -3148,6 +3211,7 @@ class Solution:
 ```c++
 class Solution {
 public:
+    
     // 辅助函数getSum,计算一个整数各位上数字的平方和
     // 19%10=9,19/10=1
     int getSum(int n) {
@@ -3158,6 +3222,7 @@ public:
         }
         return sum;
     }
+    
     // 主函数,判断输入的整数是否为快乐数,核心是用unordered_set检测循环
     // unordered_set是C++的STL(Standard Template Library,标准模板库)中的无序集合容器:存储元素唯一,底层基于哈希表实现,元素无序,常用判断set.find(元素)!=set.end(),表示元素存在于集合中(if语句的意思是如果find()找回来的不是“没找到”的标志end()，就说明找到了这个元素)
     bool isHappy(int n) {
@@ -3205,7 +3270,7 @@ class Solution:
     def get_sum(self,n: int) -> int: 
         new_num = 0
         while n:
-            n, r = divmod(n, 10)
+            n, r = divmod(n, 10)#把变量n除以10的商重新赋值给n，把余数赋值给r
             new_num += r ** 2
         return new_num
 
@@ -3240,6 +3305,7 @@ class Solution:
            if slow == fast:
                return False
        return True
+
    def get_sum(self,n: int) -> int: 
        new_num = 0
        while n:
@@ -3287,7 +3353,7 @@ class Solution:
 之前做过[有效的字母异位词](#有效的字母异位词),利用的是**数组**作为哈希表来解决哈希问题
 [两个数组的交集](#两个数组的交集)是利用**set**作为哈希表来解决哈希问题
 
-再次强调:**==当需要查询一个元素是否出现过,或者一个元素是否在集合里的时候要第一时间想到哈希法==**
+再次强调:**==当需要<u>查询一个元素是否出现过</u>,或者<u>一个元素是否在集合里</u>的时候要第一时间想到哈希法==**
 
 本题,需要一个集合来存放**遍历过的元素**,在遍历数组的时候去询问这个集合,某元素是否遍历过(即是否出现在这个集合中)
 本题不仅需要知道元素有没有遍历过,还要知道这个元素对应的下标,需要使用`key-value`结构来存放,`key`存元素,`value`存下标,使用map正合适不过了
@@ -3295,9 +3361,9 @@ class Solution:
 > 使用 数组 和 set 来做哈希法的局限
 >
 > - 数组的大小受限制,如果元素很少又很分散,哈希值太大则会造成内存空间的浪费
-> - set是一个集合,里面放的元素之能是一个key,本题中不仅要判断y是否存在而且还要记录y的下标位置,因为要返回x和y的下标,所以set也无法使用
+> - set是一个集合,里面放的元素只能是一个key,本题中不仅要判断y是否存在而且还要记录y的下标位置,因为要返回x和y的下标,所以set也无法使用
 
-这是就要选择另一种数据结构`map`,一种`key-value`结构
+这时就要选择另一种数据结构`map`,一种`key-value`结构
 
 C++中map，有三种类型：
 
@@ -3311,7 +3377,7 @@ std::unordered_map 底层实现为哈希表，std::map 和std::multimap 的底�
 
 **明确map作用和存储的元素分别表示什么**
 
-**map目的用来存放我们访问过的元素**，因为遍历数组的时候，需要记录我们之前遍历过哪些元素和对应的下标，这样才能找到与当前元素相匹配的（也就是相加等于target）
+**map的目的是用来存放我们访问过的元素**，因为遍历数组的时候，需要记录我们之前遍历过哪些元素和对应的下标，这样才能找到与当前元素相匹配的（也就是相加等于target）
 
 这道题 我们需要 给出一个元素，判断这个元素是否出现过，如果出现过，返回这个元素的下标。
 
@@ -3319,7 +3385,7 @@ std::unordered_map 底层实现为哈希表，std::map 和std::multimap 的底�
 
 所以map中的存储结构为 **{key：数据元素，value：数组元素对应的下标}**。
 
-在遍历数组的时候，只需要**向map去查询是否有和目前遍历元素匹配的数值，如果有，就找到匹配对，如果没有，就把目前遍历的元素放进map中，因为map存放的就是我们访问过的元素**。
+在遍历数组的时候，只需要**在map中去查询是否有和目前遍历元素匹配的数值，如果有，就找到匹配对，如果没有，就把目前遍历的元素放进map中，因为map存放的就是我们访问过的元素**。
 
 过程如下：
 
@@ -3336,7 +3402,7 @@ public:
         std::unordered_map <int,int> map;
         for(int i = 0; i < nums.size(); i++) {
             // 遍历当前元素，并在map中寻找是否有匹配的key
-          //auto是C++11的自动类型推导,iter是unordered_map的迭代器,指向找到的键值对
+            //auto是C++11的自动类型推导,iter是unordered_map的迭代器,指向找到的键值对
             auto iter = map.find(target - nums[i]); 
             if(iter != map.end()) {
                 //iter->second:迭代器指向的是pair<int,int>类型的键值对,first是key(元素值),second是value(下标)
@@ -3352,7 +3418,7 @@ public:
 //时间复杂度O(n),空间复杂度O(n)
 ```
 
-- 为什么用哈希表:用空间换时间,优化查找效率,`find`操作平均时间复杂度O(1),可以把已遍历过的元素存起来,每次找补数时直接查表,只需一次遍历就能完成
+- 为什么用哈希表:**用空间换时间**,优化查找效率,`find`操作平均时间复杂度O(1),可以把已遍历过的元素存起来,每次找补数时直接查表,只需一次遍历就能完成
 - 哈希表为什么用`map`:需要存储 “元素值 → 下标” 的映射关系,`map`（包括 `unordered_map`）的键值对结构正好满足这种映射存储
 - `map`用来存什么:用来存储**已经遍历过的数组元素，以及它们在原数组中的下标**.遍历到当前元素时，我们需要知道 “之前是否出现过能和当前元素凑成 target 的补数”，所以把已遍历的元素存到 `map` 里，供后续查找补数使用
 
@@ -3396,7 +3462,7 @@ class Solution:
                 # 如果和等于目标数，则返回两个数的下标
                 left_index = nums.index(nums_sorted[left])
                 right_index = nums.index(nums_sorted[right])
-                #当找到的两个数是同一值(数组中有重复元素)时,修正第二个数的下标,避免两个下标重复
+                #当两个数是重复值时，直接用nums.index()永远会返回这个值在原数组中第一次出现的下标，必须修正找到第二个重复值的真实位置（由前述可得第二个重复值必然出现在原数组第一次出现的右边）例如nums=[3,3] target=6 标准输出应为[0,1]or[1,0] 若不修正则返回[0,0]
                 #nums[left_index+1:]切片,跳过已找到的第一个重复元素,只在第一个重复元素的后面部分找第二个重复元素避免再次找到同一个下标
                 #.index(nums_sorted[right])在切片后的列表中找目标值的下标,这个下标是切片后子列表的局部下标,不是原数组的全局下标
                 #+left_index+1转换为原数组的全局下标,切片是从left_index+1开始的,需要把局部下标还原为原数组的下标
@@ -3426,7 +3492,7 @@ nums1[i] + nums2[j] + nums3[k] + nums4[l] == 0
 
 #### 思路
 
-在[有效字母异味词](#有效的字母异味词)中利用数组下标做映射,因为字母出现的个数可控
+在[有效字母异位词](#有效的字母异位词)中利用数组下标做映射,因为字母出现的个数可控
 本题中元素数值不确定(可能很大),用数组下标做映射会浪费大量的内存空间,因此需要考虑使用`set`或者`map`
 
 另外,直接用四个`for`循环时间复杂度太高了,想想能不能两两分组,直接能将时间复杂度减半.把这种思维运用到哈希法中,就是在A、B、C、D四个大的数组中,先找到`a+b`并记录相应的和以及这个和出现的次数,存入到`map`中,再在`map`中去寻找`-(c+d)`是否出现过,如果出现过就要统计出现的次数.因此要考虑使用`map`来做此题   `key—value`键值对
@@ -3447,7 +3513,7 @@ public:
         for (int c : C) {
             for (int d : D) {
                 //如果存在,umap[target]代表能和当前(c,d)凑出0的(a,b)组合数量
-                //这里每一次子循环找到的都是一组(c,d),找到了就加上对应的umap[target]即可,如果下一组(c,d)的和同样满足这一个target值,继续往上加就是了
+                //这里每一次子循环找到的都是一组不同的(c,d),找到了就加上对应的umap[target]即可,如果下一组(c,d)的和同样满足这一个target值,继续往上加就是了
                 if (umap.find(0 - (c + d)) != umap.end()) {
                     count += umap[0 - (c + d)];
                 }
@@ -3485,7 +3551,6 @@ class Solution(object):
                 if key in hashmap:
                     count += hashmap[key]
         return count
- 
 ```
 
 ### 赎金信
@@ -3561,7 +3626,7 @@ public:
                 // 在ransomNote中找到和magazine相同的字符
                 if (magazine[i] == ransomNote[j]) {
                     // ransomNote删除这个字符
-                    //ransomNote.begin()的作用是返回指向字符串第一个字符的迭代器(字符的指针),begin+j是把迭代器向后移动j个位置,指向ransomNote中下标为j的字符,erase(迭代器位置)本质上是和erase(下标位置,删除长度)等价的
+                    //ransomNote.begin()的作用是返回指向字符串第一个字符的迭代器(字符的指针),.begin()+j是把迭代器向后移动j个位置,指向ransomNote中下标为j的字符,erase(迭代器位置)本质上是和erase(下标位置,删除长度)等价的
                     ransomNote.erase(ransomNote.begin() + j); 
                     //ransomNote.erase(j,1);
                     break;
@@ -3579,7 +3644,7 @@ public:
 
 想法:均由小写字母构成的话,能否采用数组进行哈希映射?
 
-当然可以选择用空间换时间的哈希策略,用一个长度为26的数组来记录magazine里字母出现的次数,在用ransomNote去验证这个数组是否包含了ransomNote所需要的所有字母
+当然可以选择用空间换时间的哈希策略,用一个长度为26的数组来记录magazine里字母出现的次数,再用ransomNote去验证这个数组是否包含了ransomNote所需要的所有字母
 
 那么这里为什么不使用map呢?
 
@@ -3623,7 +3688,7 @@ public:
         for (int j = 0; j < ransomNote.length(); j++) {
             // 遍历ransomNote，在record里对应的字符个数做--操作
             record[ransomNote[j]-'a']--;
-            // 如果小于零说明ransomNote里出现的字符，magazine没有
+            // 如果小于零说明ransomNote里出现的字符，magazine没有（或者字符个数不够多）
             if(record[ransomNote[j]-'a'] < 0) {
                 return false;
             }
@@ -3961,9 +4026,137 @@ nums[a] + nums[b] + nums[c] + nums[d] == target
 
 ### 反转字符串
 
+```plain
+#题目
 
+编写函数将输入的字符串反转，输入字符串以字符数组char[]的形式给出
+不要给另外的数组分配额外的空间，你必须原地修改输入数组、使用 O(1) 的额外空间解决这一问题。
+可以假设数组中的所有字符都是 ASCII 码表中的可打印字符。
+```
+
+#### 思路
+
+如果题目关键的部分可以直接使用库函数解决时，那就不要用库函数
+
+如果库函数只是解题过程中的一小部分，并且库函数的内部实现原理十分清晰时，可以考虑使用库函数
+
+反转字符串可以参考[反转链表](#反转链表)，反转链表中使用了双指针的方法，这里仍然可以借鉴
+
+字符串也是一种数组，所以元素在内存中是**连续分布**的，这就决定了反转链表和反转字符串方式上是有所差异的
+
+对于字符串，我们定义两个指针（也可以说是索引下标），一个从字符串前面，一个从字符串后面，两个指针同时向中间移动，并交换元素。
+
+以字符串`hello`为例，过程如下：
+
+![344.反转字符串](https://file1.kamacoder.com/i/algo/344.%E5%8F%8D%E8%BD%AC%E5%AD%97%E7%AC%A6%E4%B8%B2.gif)
+
+不难写出如下C++代码:
+
+```cpp
+void reverseString(vector<char>& s) {
+    for (int i = 0, j = s.size() - 1; i < s.size()/2; i++, j--) {
+        swap(s[i],s[j]);
+    }
+}
+```
+
+循环里只要做交换s[i] 和s[j]操作就可以了，那么我这里使用了swap 这个库函数。大家可以使用。
+
+因为相信大家都知道交换函数如何实现，而且这个库函数仅仅是解题中的一部分， 所以这里使用库函数也是可以的。
+
+swap可以有两种实现。
+
+一种就是常见的交换数值：
+
+```cpp
+int tmp = s[i];
+s[i] = s[j];
+s[j] = tmp;
+```
+
+一种就是通过位运算：
+
+```cpp
+s[i] ^= s[j];
+s[j] ^= s[i];
+s[i] ^= s[j];
+```
+
+如果题目关键的部分直接用库函数就可以解决，建议不要使用库函数。
+
+如果库函数仅仅是 解题过程中的一小部分，并且你已经很清楚这个库函数的内部实现原理的话，可以考虑使用库函数。
+
+**在字符串相关的题目中，库函数对大家的诱惑力是非常大的，因为会有各种反转，切割取词之类的操作**，这也是为什么字符串的库函数这么丰富的原因。
+
+C++代码如下：
+
+```cpp
+class Solution {
+public:
+    void reverseString(vector<char>& s) {
+        for (int i = 0, j = s.size() - 1; i < s.size()/2; i++, j--) {
+            swap(s[i],s[j]);
+        }
+    }
+};
+```
+
+Python
+
+```python
+#双指针
+class Solution:
+    def reverseString(self, s: List[str]) -> None:
+        """
+        Do not return anything, modify s in-place instead.
+        """
+        left, right = 0, len(s) - 1
+        
+        # 该方法已经不需要判断奇偶数，经测试后时间空间复杂度比用 for i in range(len(s)//2)更低
+        # 因为while每次循环需要进行条件判断，而range函数不需要，直接生成数字，因此时间复杂度更低。推荐使用range
+        while left < right:
+            s[left], s[right] = s[right], s[left]
+            left += 1
+            right -= 1
+ 
+#使用栈 先进后出，后进先出
+class Solution:
+    def reverseString(self, s: List[str]) -> None:
+        """
+        Do not return anything, modify s in-place instead.
+        """
+        stack = []
+        for char in s:
+            stack.append(char)
+        for i in range(len(s)):
+            s[i] = stack.pop()
+       
+#使用range
+class Solution:
+    def reverseString(self, s: List[str]) -> None:
+        """
+        Do not return anything, modify s in-place instead.
+        """
+        n = len(s)
+        for i in range(n // 2):
+            s[i], s[n - i - 1] = s[n - i - 1], s[i]
+            
+#或者使用切片		s[:] = s[::-1]
+#使用列表推导		s[:] = [s[i] for i in range(len(s)-1,-1,-1)]	
+#使用反转		s.reverse()		s[:] = reversed(s)
+```
 
 ### 反转字符串II
+
+```plain
+#题目
+
+给定一个字符串s和一个整数k；从字符串开头算起，每计数至2k个字符，就反转这2k个字符中的前k个字符
+如果剩余字符少于k个，则将剩余字符全部反转
+如果剩余字符小于2k单大于或者等于k个，则反转前k个字符，其余字符保持原样
+```
+
+#### 思路
 
 
 
