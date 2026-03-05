@@ -4162,9 +4162,121 @@ class Solution:
 
 ### 替换数字
 
+```plain
+#题目
 
+给定一个字符串 s，它包含小写字母和数字字符，请编写一个函数，将字符串中的字母字符保持不变，而将每个数字字符替换为number。
+```
+
+#### 思路
+
+扩充数组到每个数字支付替换成`number`之后的大小
+
+例如 字符串 "a5b" 的长度为3，那么 将 数字字符变成字符串 "number" 之后的字符串为 "anumberb" 长度为 8。
+
+![20231030165201](https://file1.kamacoder.com/i/algo/20231030165201.png)
+
+**从后向前替换数字字符**，也就是双指针法，过程如下：i指向新长度的末尾，j指向旧长度的末尾。
+
+![img](https://file1.kamacoder.com/i/algo/20231030173058.png)
+
+为什么要从后向前填充，从前向后填充不行么？
+
+>  从前向后填充就是O(n^2)的算法了，因为每次添加元素都要将添加元素之后的所有元素整体向后移动。
+
+**其实很多==数组填充类==的问题，其做法都是==先预先给数组扩容带填充后的大小==，然后再==从后向前进行操作==。**
+
+这么做有两个好处：
+
+1. 不用申请新数组。
+2. 从后向前填充元素，避免了**从前向后填充元素时，每次添加元素都要将添加元素之后的所有元素向后移动**的问题。
+
+C++_code
+
+```c++
+#include <iostream>
+using namespace std;
+int main() {
+    string s;
+    while (cin >> s) {
+        int sOldIndex = s.size() - 1;
+        int count = 0; // 统计数字的个数
+        for (int i = 0; i < s.size(); i++) {
+            if (s[i] >= '0' && s[i] <= '9') {
+                count++;
+            }
+        }
+        // 扩充字符串s的大小，也就是将每个数字替换成"number"之后的大小
+        s.resize(s.size() + count * 5);
+        int sNewIndex = s.size() - 1;
+        // 从后往前将数字替换为"number"
+        while (sOldIndex >= 0) {
+            if (s[sOldIndex] >= '0' && s[sOldIndex] <= '9') {
+                s[sNewIndex--] = 'r';
+                s[sNewIndex--] = 'e';
+                s[sNewIndex--] = 'b';
+                s[sNewIndex--] = 'm';
+                s[sNewIndex--] = 'u';
+                s[sNewIndex--] = 'n';
+            } else {
+                s[sNewIndex--] = s[sOldIndex];
+            }
+            sOldIndex--;
+        }
+        cout << s << endl;       
+    }
+}
+```
+
+Python_code
+
+```python
+class Solution(object):
+    def subsitute_numbers(self, s):
+        """
+        :type s: str
+        :rtype: str
+        """#参数s是字符串，返回值也是字符串
+        
+        count = sum(1 for char in s if char.isdigit()) # 统计数字的个数
+        expand_len = len(s) + (count * 5)  # 计算扩充后字符串的大小， x->number， 每有一个数字就要增加五个长度
+        #创建固定长度的空列表，预分配内存地址，避免动态扩容
+        res = [''] * expand_len
+        
+        new_index = expand_len - 1 # 指向扩充后字符串末尾
+        old_index = len(s) - 1 # 指向原字符串末尾
+        
+        while old_index >= 0: # 从后往前， 遇到数字替换成“number”
+            if s[old_index].isdigit():
+                res[new_index-5:new_index+1] = "number"
+                new_index -= 6
+            else:
+                res[new_index] = s[old_index]
+                new_index -= 1
+            old_index -= 1
+        
+        return "".join(res)
+
+#主程序入口
+if __name__ == "__main__":
+    solution = Solution()
+
+    while True:
+        try:
+            s = input()
+            result = solution.subsitute_numbers(s)
+            print(result)
+        except EOFError:
+            break
+```
 
 ### 翻转字符串里的单词
+
+```plain
+#题目
+
+给定一个字符串，逐个翻转字符串中的每个单词
+```
 
 
 
@@ -4172,11 +4284,115 @@ class Solution:
 
 
 
-### 实现strStr()函数
+### 实现strStr()函数——KMP算法
+
+```plain
+#题目
+
+实现strStr()函数
+给定一个haystack字符串和一个needle字符串，在haystack字符串中找出needle字符串出现的第一个位置。如果不存在则返回-1
+```
+
+#### KMP算法
+
+这道题时经典的KMP算法题，用于解决字符串匹配问题
+
+比如，文本串`aabaabaaf`，模式串`aabaaf`，求在文本串中是否出现过模式串
+
+KMP的思想就是：**当出现字符串不匹配时，可以记录一部分之前已经匹配的文本内容，利用这些信息避免从头再去做匹配**
+
+##### 前缀表
+
+前缀表主要用于**回退**，它记录了模式串与文本串不匹配的时候，模式串应该从哪里开始重新匹配
+
+next数组就是一个前缀表`prefix table`
+
+通过一个例子来展示前缀表：要在文本串`aabaabaafa`中查找是否出现过一个模式串`aabaaf`
+
+![KMP详解1](https://file1.kamacoder.com/i/algo/KMP%E7%B2%BE%E8%AE%B21.gif)
+
+可以看到文本串中第六个字符b和模式串的第六个字符f不匹配了。如果用暴力匹配，就要从头开始匹配
+
+如果使用前缀表匹配，那么就是从上次已经匹配的内容开始匹配，找到了模式串中第三个字符b继续开始匹配
+
+前缀表的任务是当前位置匹配失败，找到之前已经匹配上的位置，再重新匹配，此也意味着在某个字符失配时，前缀表会告诉你下一步匹配中，模式串应该跳到哪个位置
+
+前缀表：记录模式串中每个位置`j`的**最长相等前后缀长度**，当匹配失败时，告知`j`应该回退到哪个位置
+
+##### 最长相等前后缀
+
+- **前缀&&后缀**
+
+  - 前缀：不包含最后一个字符且以第一个字符开头的所有连续子串
+  - 后缀：不包含第一个字符且以最后一个字符结尾的所有连续子串
+  - 举例：对于一个字符串`t='aabaa'`，它的前缀组成的列表为`['a','aa','aab','aaba']`，它的后缀组成的列表为`["a", "aa", "baa", "abaa"]`
+
+- **最长相等前后缀**
+
+  前缀和后缀中**长度最长且内容相等**的子串长度
+  在上例中，最长的子串是`aa`，所以长度为2
+
+##### 前缀表必要性
+
+前缀表为什么能告诉我们上次匹配的位置并跳过
+
+回顾之前匹配的过程，发现在下标5的地方遇到不匹配，模式串是指向f，字符串指向b
+
+![KMP精讲1](https://file1.kamacoder.com/i/algo/KMP%E7%B2%BE%E8%AE%B21.png)
+
+![KMP精讲2](https://file1.kamacoder.com/i/algo/KMP%E7%B2%BE%E8%AE%B22.png)
+
+然后就找到了下标2，指向b，继续匹配
+
+**下标5之前这部分的字符串（也就是字符串aabaa）的最长相等的前缀 和 后缀字符串是 子字符串aa ，因为找到了最长相等的前缀和后缀，匹配失败的位置是后缀子串的后面，那么我们找到与其相同的前缀的后面重新匹配就可以了。**
+
+所以前缀表具有告诉我们当前位置匹配失败，跳到之前已经匹配过的地方的能力。
+
+##### 计算前缀表
 
 
 
 ### 重复的子字符串
+
+
+
+
+
+
+
+
+
+#### 前缀表
+
+记录模式串中每个位置`j`的**最长相等前后缀长度**，当匹配失败时，告知`j`应该回退到哪个位置
+
+- **前缀&&后缀**
+
+  - 前缀：不包含最后一个字符且以第一个字符开头的所有连续子串
+  - 后缀：不包含第一个字符且以最后一个字符结尾的所有连续子串
+  - 举例：对于一个字符串`t='aabaa'`，它的前缀组成的列表为`['a','aa','aab','aaba']`，它的后缀组成的列表为`["a", "aa", "baa", "abaa"]`
+
+- **最长相等前后缀**
+
+  前缀和后缀中**长度最长且内容相等**的子串长度
+  在上例中，最长的子串是`aa`，所以长度为2
+
+- **前缀表定义**
+
+  前缀表（prefix数组）是一个和模式串长度相同的数组，`prefix[i]`表示模式串前`i+1`个字符组成的子串的**最长前后缀长度**
+
+  以模式串`t='aabaaf'`为例，计算前缀表
+
+  | 索引 i | 子串 t [0..i] |  最长相等前后缀长度   | prefix[i] |
+  | :----: | :-----------: | :-------------------: | :-------: |
+  |   0    |      "a"      |  无前后缀（长度 1）   |     0     |
+  |   1    |     "aa"      |  前缀 "a" = 后缀 "a"  |     1     |
+  |   2    |     "aab"     |     无相等前后缀      |     0     |
+  |   3    |    "aaba"     |  前缀 "a" = 后缀 "a"  |     1     |
+  |   4    |    "aabaa"    | 前缀 "aa" = 后缀 "aa" |     2     |
+  |   5    |   "aabaaf"    |     无相等前后缀      |     0     |
+
+  最终前缀表：`prefix = [0,1,0,1,2,0]`。
 
 
 
@@ -4247,7 +4463,7 @@ class Solution:
 - 数组（`list`）：缓存友好，内存连续，出入栈操作效率高；数组满了需要扩容
 - 链表：无固定大小限制，动态扩容；内存不连续，范围效率低
 
-**栈是一种特殊的线性表**，数据元素**插入（入栈，Push）**和**删除（出栈，Pop）**只能在线性表的**同一端**进行。这一端被称为**栈顶**，另一端则被称为**栈底**
+**栈是一种特殊的线性表**，数据元素**插入（入栈，Push）**和**删除（出栈，Pop）**只能在线性表的**同一端**进行。这一端被称为**栈顶**，另一端则被称为**栈底**	==即**出入栈操作**都**只能**从线性表的**栈顶**进行==
 
       |   |   <- 栈顶 (操作端)
       | C |
@@ -4274,7 +4490,7 @@ print("栈内容:", stack)  # 输出: [1,2,3]
 # 出栈（pop）
 top_elem = stack.pop()
 print("出栈元素:", top_elem)  # 输出: 3
-print("出栈后栈:", stack)     # 输出: [1,2]
+print("出栈后的新栈:", stack)     # 输出: [1,2]
 
 # 查看栈顶（peek）
 peek_elem = stack[-1]
@@ -4327,8 +4543,6 @@ print(s.pop())   # 输出: 20
 print(s.size())  # 输出: 1
 # s.pop()  # 此时栈剩1个元素，pop后空；再pop会抛异常
 ```
-
-
 
 #### 队列
 
@@ -4396,15 +4610,387 @@ print("队列大小:", len(queue))  # 输出: 2
 
 ### 用栈实现队列
 
+```plain
+#题目
+
+只使用两个栈实现先入先出队列。队列应该要支持一般队列支持的所有操作
+push(x) -- 将一个元素放入队列的尾部。
+pop() -- 从队列首部移除元素。
+peek() -- 返回队列首部的元素。
+empty() -- 返回队列是否为空。
+```
+
+#### 思路
+
+用栈来模拟队列的行为，如果只用一个栈（后进先出）是无法实现队列（先进先出），可以设置两个栈：一个输入栈，一个输出栈；用动画模拟
+
+![232.用栈实现队列版本2](https://file1.kamacoder.com/i/algo/232.%E7%94%A8%E6%A0%88%E5%AE%9E%E7%8E%B0%E9%98%9F%E5%88%97%E7%89%88%E6%9C%AC2.gif)
+
+在push数据的时候，只要数据放进输入栈就好，**但在pop的时候，操作就复杂一些，输出栈如果为空，就把进栈数据==全部导入==进来（注意是全部导入）**，再从出栈弹出数据，如果输出栈不为空，则直接从出栈弹出数据就可以了。
+
+最后如何判断队列为空呢？**如果进栈和出栈都为空的话，说明模拟的队列为空了。**
+
+```c++
+class MyQueue {//定义模拟队列的类
+public:
+    stack<int> stIn;//输入栈，接收入队的元素，输出元素给输出栈
+    stack<int> stOut;//输出栈，提供出队的元素，接收输入栈的输出元素
+    /** Initialize your data structure here. */  //在这里初始化你的数据结构
+    MyQueue() {
+
+    }
+    /** Push element x to the back of queue. */
+    void push(int x) {
+        stIn.push(x);//栈的push：压入栈顶
+    }
+
+    /** Removes the element from in front of queue and returns that element. */
+    int pop() {
+        // 只有当stOut为空的时候，再从stIn里导入数据（导入stIn全部数据）
+        if (stOut.empty()) {
+            // 从stIn导入数据直到stIn为空
+            while(!stIn.empty()) {
+                stOut.push(stIn.top());//取输入栈的栈顶元素，压入输出栈栈顶
+                stIn.pop();//移除输入栈栈顶元素（已转移到输出栈，避免重复）
+            }//循环结束后输入栈的所有元素已经被转移到了输出栈
+        }
+        int result = stOut.top();//输出栈栈顶=队列队首
+        stOut.pop();//移除输出栈栈顶=队列出队操作
+        return result;//返回被移除的队首元素（即queue.pop()）
+    }
+
+    /** Get the front element. */   //获取队首元素，不移除
+    int peek() {
+        int res = this->pop(); // 复用pop()函数，调用pop()拿到了队首元素，此时元素被移除
+        stOut.push(res); // 因为pop函数弹出了元素res，所以再添加回去
+        return res;
+    }
+
+    /** Returns whether the queue is empty. */   //判断队列是否为空
+    bool empty() {
+        //队列的所有元素要么在输入栈，要么在输出栈，只有两者都空时，队列才空
+        return stIn.empty() && stOut.empty();
+    }
+};
+
+//peek()的实现直接复用了pop()，对于功能相近的函数要抽象出来，尽可能复用代码，而不是做cv工程师
+```
+
+```python
+class MyQueue:
+
+    def __init__(self):
+        """
+        in主要负责push，out主要负责pop
+        """
+        self.stack_in = []
+        self.stack_out = []
 
 
+    def push(self, x: int) -> None:
+        """
+        有新元素进来，就往in里面push
+        """
+        self.stack_in.append(x)
 
+    #c++的逻辑和python略有不同，不过原理都是输出栈为空时才将所有输入栈元素倒入到输出栈，输出栈不为空时，调用栈的pop()弹出元素
+    def pop(self) -> int:
+        """
+        Removes the element from in front of queue and returns that element.
+        """
+        #调用自定义的empty()来判断队列是否为空，如果队列为空，直接返回None
+        if self.empty():
+            return None
+        #如果输出栈有元素直接弹出栈顶
+        if self.stack_out:
+            return self.stack_out.pop()
+        #如果输出栈为空，先把输入栈所有元素弹出到输出栈
+        else:
+            for i in range(len(self.stack_in)):
+                self.stack_out.append(self.stack_in.pop())
+            return self.stack_out.pop()
+
+
+    def peek(self) -> int:
+        """
+        Get the front element.
+        """
+        ans = self.pop()
+        self.stack_out.append(ans)
+        return ans
+
+
+    def empty(self) -> bool:
+        """
+        只要in或者out有元素，说明队列不为空
+        """
+        return not (self.stack_in or self.stack_out)
+```
 
 ### 用队列实现栈
 
+```plain
+#题目
+
+使用队列实现栈的下列操作：
+push(x) -- 元素 x 入栈
+pop() -- 移除栈顶元素
+top() -- 获取栈顶元素
+empty() -- 返回栈是否为空
+```
+
+#### 思路
+
+单向队列
+
+队列是先进先出的规则，把一个队列中数据导入另一个队列中，数据的顺序并没有变为先进后出
+
+这时需要想到用另一个队列作为备份
+
+**用两个队列que1和que2实现队列的功能，que2其实完全就是一个备份的作用**，把que1最后面的元素以外的元素都备份到que2，然后弹出最后面的元素，再把其他元素从que2导回que1。
+
+![225.用队列实现栈](https://file1.kamacoder.com/i/algo/225.%E7%94%A8%E9%98%9F%E5%88%97%E5%AE%9E%E7%8E%B0%E6%A0%88.gif)
+
+```c++
+class MyStack {
+public:
+    queue<int> que1;
+    queue<int> que2; // 辅助队列，用来备份
+
+    /** Initialize your data structure here. */
+    MyStack() {
+
+    }
+
+    /** Push element x onto stack. */
+    void push(int x) {
+        que1.push(x);
+    }
+
+    /** Removes the element on top of the stack and returns that element. */
+    int pop() {//pop()移除并返回栈顶元素
+        int size = que1.size();
+        size--;
+        while (size--) { // 将que1 导入que2，但要留下最后一个元素
+            //front()只获取队首元素，不会移除该元素，返回值时队首元素的拷贝
+            que2.push(que1.front());
+            //pop()只移除队首元素，因为que1的队首元素已经拷贝了一份被push到que2了，所以要移除队首元素
+            que1.pop();
+        }
+
+        int result = que1.front(); // 留下的最后一个元素就是要返回的值
+        que1.pop();
+        que1 = que2;            // 再将que2赋值给que1
+        while (!que2.empty()) { // 清空que2
+            que2.pop();
+        }
+        return result;
+    }
+
+    /** Get the top element.
+     ** Can not use back() direactly.
+     */
+    int top(){//top()只查看栈顶元素，只是获取值，不移除元素
+        int size = que1.size();
+        size--;
+        while (size--){
+            // 将que1 导入que2，但要留下最后一个元素
+            que2.push(que1.front());
+            que1.pop();
+        }
+
+        int result = que1.front(); // 留下的最后一个元素就是要回返的值
+        que2.push(que1.front());   // 获取值后将最后一个元素也加入que2中，保持原本的结构不变
+        que1.pop();
+
+        que1 = que2; // 再将que2赋值给que1
+        while (!que2.empty()){
+            // 清空que2
+            que2.pop();
+        }
+        return result;
+    }
+
+    /** Returns whether the stack is empty. */
+    bool empty() {
+        return que1.empty();
+    }
+};
+//时间复杂度: pop为O(n)，top为O(n)，其他为O(1)
+```
+
+但是这道题用一个队列就足够了
+
+一个队列在模拟栈弹出元素的时候只要将队列头部的元素（除了最后一个元素外）重新添加到队列尾部，此时再去弹出元素就是栈的顺序了
+
+```c++
+class MyStack {
+public:
+    queue<int> que;
+
+    MyStack() {
+
+    }
+
+    void push(int x) {
+        que.push(x);
+    }
+
+    int pop() {
+        int size = que.size();
+        size--;
+        while (size--) { // 将队列头部的元素（除了最后一个元素外） 重新添加到队列尾部
+            que.push(que.front());
+            que.pop();
+        }
+        int result = que.front(); // 此时弹出的元素顺序就是栈的顺序了
+        que.pop();
+        return result;
+    }
+
+    int top(){
+        int size = que.size();
+        size--;
+        while (size--){
+            // 将队列头部的元素（除了最后一个元素外） 重新添加到队列尾部
+            que.push(que.front());
+            que.pop();
+        }
+        int result = que.front(); // 此时获得的元素就是栈顶的元素了
+        que.push(que.front());    // 将获取完的元素也重新添加到队列尾部，保证数据结构没有变化
+        que.pop();
+        return result;
+    }
+
+    bool empty() {
+        return que.empty();
+    }
+};
+//时间复杂度: pop为O(n)，top为O(n)，其他为O(1)
+```
+
+python代码
+
+```python
+#双队列实现
+from collections import deque
+
+class MyStack:
+
+    def __init__(self):
+        """
+        Python普通的Queue或SimpleQueue没有类似于peek的功能
+        也无法用索引访问，在实现top的时候较为困难。
+
+        用list可以，但是在使用pop(0)的时候时间复杂度为O(n)
+        因此这里使用双向队列，我们保证只执行popleft()和append()，因为deque可以用索引访问，可以实现和peek相似的功能
+
+        in - 存所有数据
+        out - 仅在pop的时候会用到
+        """
+        self.queue_in = deque()
+        self.queue_out = deque()
+
+    def push(self, x: int) -> None:
+        """
+        直接append即可
+        """
+        self.queue_in.append(x)
 
 
+    def pop(self) -> int:
+        """
+        1. 首先确认不空
+        2. 因为队列的特殊性，FIFO，所以我们只有在pop()的时候才会使用queue_out
+        3. 先把queue_in中的所有元素（除了最后一个），依次出列放进queue_out
+        4. 交换in和out，此时out里只有一个元素
+        5. 把out中的pop出来，即是原队列的最后一个
+        
+        tip：这不能像栈实现队列一样，因为另一个queue也是FIFO，如果执行pop()它不能像
+        stack一样从另一个pop()，所以干脆in只用来存数据，pop()的时候两个进行交换
+        """
+        if self.empty():
+            return None
 
+        for i in range(len(self.queue_in) - 1):
+            self.queue_out.append(self.queue_in.popleft())
+        
+        self.queue_in, self.queue_out = self.queue_out, self.queue_in    # 交换in和out，这也是为啥in只用来存
+        return self.queue_out.popleft()
+
+    def top(self) -> int:
+        """
+        写法一：
+        1. 首先确认不空
+        2. 我们仅有in会存放数据，所以返回第一个即可（这里实际上用到了栈）
+        写法二：
+        1. 首先确认不空
+        2. 因为队列的特殊性，FIFO，所以我们只有在pop()的时候才会使用queue_out
+        3. 先把queue_in中的所有元素（除了最后一个），依次出列放进queue_out
+        4. 交换in和out，此时out里只有一个元素
+        5. 把out中的pop出来，即是原队列的最后一个，并使用temp变量暂存
+        6. 把temp追加到queue_in的末尾
+        """
+        # 写法一：
+        # if self.empty():
+        #     return None
+        
+        # return self.queue_in[-1]    # 这里实际上用到了栈，因为直接获取了queue_in的末尾元素
+
+        # 写法二：
+        if self.empty():
+            return None
+
+        for i in range(len(self.queue_in) - 1):
+            self.queue_out.append(self.queue_in.popleft())
+        
+        self.queue_in, self.queue_out = self.queue_out, self.queue_in 
+        temp = self.queue_out.popleft()   
+        self.queue_in.append(temp)#将获取完的元素重新添加到队尾，保证数据结构没变化
+        return temp
+
+
+    def empty(self) -> bool:
+        """
+        因为只有in存了数据，只要判断in是不是有数即可
+        """
+        return len(self.queue_in) == 0
+
+    
+#单队列实现栈
+class MyStack:
+
+    def __init__(self):
+        self.que = deque()
+
+    def push(self, x: int) -> None:
+        self.que.append(x)
+
+    def pop(self) -> int:
+        if self.empty():
+            return None
+        for i in range(len(self.que)-1):
+            self.que.append(self.que.popleft())
+        return self.que.popleft()
+
+    def top(self) -> int:
+        # 写法一：
+        # if self.empty():
+        #     return None
+        # return self.que[-1]
+
+        # 写法二：
+        if self.empty():
+            return None
+        for i in range(len(self.que)-1):
+            self.que.append(self.que.popleft())
+        temp = self.que.popleft()
+        self.que.append(temp)
+        return temp
+
+    def empty(self) -> bool:
+        return not self.que
+```
 
 ### 有效的括号
 
