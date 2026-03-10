@@ -4315,7 +4315,7 @@ next数组就是一个前缀表`prefix table`
 
 如果使用前缀表匹配，那么就是从上次已经匹配的内容开始匹配，找到了模式串中第三个字符b继续开始匹配
 
-前缀表的任务是当前位置匹配失败，找到之前已经匹配上的位置，再重新匹配，此也意味着在某个字符失配时，前缀表会告诉你下一步匹配中，模式串应该跳到哪个位置
+前缀表的任务是当前位置匹配失败，找到之前已经匹配上的位置，再重新匹配，这也意味着在某个字符失配时，前缀表会告诉你下一步匹配中，模式串应该跳到哪个位置
 
 前缀表：记录模式串中每个位置`j`的**最长相等前后缀长度**，当匹配失败时，告知`j`应该回退到哪个位置
 
@@ -4344,11 +4344,172 @@ next数组就是一个前缀表`prefix table`
 
 然后就找到了下标2，指向b，继续匹配
 
-**下标5之前这部分的字符串（也就是字符串aabaa）的最长相等的前缀 和 后缀字符串是 子字符串aa ，因为找到了最长相等的前缀和后缀，匹配失败的位置是后缀子串的后面，那么我们找到与其相同的前缀的后面重新匹配就可以了。**
+**下标5之前这部分的字符串（也就是字符串`aabaa`）的最长相等的 前缀 和 后缀字符串是 子字符串`aa` ，因为找到了最长相等的前缀和后缀，匹配失败的位置是后缀子串的后面，那么我们找到与其相同的前缀的后面重新匹配就可以了。**
 
 所以前缀表具有告诉我们当前位置匹配失败，跳到之前已经匹配过的地方的能力。
 
+假设有文本串`... a a b a a X ...`，现在有模式串`a a b a a f`；此时模式串的前5个字符`aabaa`和文本串对应位置时完全匹配的，目标是找到模式串的一个**新的起始位置**继续匹配且**不回退文本串的指针**
+
+已匹配的`aabaa`的最长相等前后缀是`aa`，意味着：
+文本串中已匹配的最后2个字符（后缀）是`aa`
+模式串中已匹配的最前2个字符（前缀）是`aa`
+因为文本串和模式串的`aabaa`完全匹配，所以文本串的后缀`aa`=模式串的前缀`aa`
+
+已知匹配失败在`f`，说明文本串的`X`不等于`f`，但是文本串的后缀`aa`是确定匹配的，是和模式串开头的`aa`完全一样的，那这部分`aa`就不需要重新匹配了——直接把模式串的 “前缀`aa`” 对齐到文本串的 “后缀`aa`”，然后从模式串`aa`的下一个位置开始匹配即可
+
 ##### 计算前缀表
+
+![KMP精讲5](https://file1.kamacoder.com/i/algo/KMP%E7%B2%BE%E8%AE%B25.png)
+
+长度为前1个字符的子串`a`，最长相同前后缀的长度为0。（注意字符串的**前缀是指不包含最后一个字符的所有以第一个字符开头的连续子串**；**后缀是指不包含第一个字符的所有以最后一个字符结尾的连续子串**。）
+
+![KMP精讲6](https://file1.kamacoder.com/i/algo/KMP%E7%B2%BE%E8%AE%B26.png)
+
+长度为前2个字符的子串`aa`，最长相同前后缀的长度为1。
+
+长度为前3个字符的子串`aab`，最长相同前后缀的长度为0。
+
+长度为前4个字符的子串`aaba`，最长相同前后缀的长度为1。 
+
+长度为前5个字符的子串`aabaa`，最长相同前后缀的长度为2。
+
+长度为前6个字符的子串`aabaaf`，最长相同前后缀的长度为0。
+
+求得的最长相同前后缀的长度就是对应前缀表的元素，如图：
+
+![KMP精讲8](https://file1.kamacoder.com/i/algo/KMP%E7%B2%BE%E8%AE%B28.png)
+
+可以看出模式串与前缀表对应位置的数字表示的就是：**下标i之前（包括i）的字符串中，有多大长度的相同前缀后缀。**
+
+再来看一下如何利用 前缀表找到 当字符不匹配的时候应该指针应该移动的位置。如动画所示：
+
+![KMP精讲2](https://file1.kamacoder.com/i/algo/KMP%E7%B2%BE%E8%AE%B22.gif)
+
+找到的**不匹配**的位置， 那么此时我们要看它的**前一个字符的前缀表的数值**是多少。
+
+为什么要前一个字符的前缀表的数值呢，因为要找**前面字符串的最长相同的前缀和后缀**。
+
+所以要看前一位的 前缀表的数值。
+
+前一个字符的前缀表的数值是2， 所以把下标移动到下标2的位置继续比配。 可以再反复看一下上面的动画。
+
+##### 前缀表&next数组
+
+next数组既可以是前缀表，也可以是前缀表统一减一（右移一位，初始位置为-1）
+
+##### 使用next数组来匹配
+
+**以下我们以前缀表统一减一之后的next数组来做演示**。
+
+有了next数组，就可以根据next数组来 匹配文本串s，和模式串t了。
+
+注意next数组是新前缀表（旧前缀表统一减一了）。
+
+匹配过程动画如下：
+
+![KMP精讲4](https://file1.kamacoder.com/i/algo/KMP%E7%B2%BE%E8%AE%B24.gif)
+
+n为文本串长度，m为模式串长度，因为在匹配的过程中，根据前缀表不断调整匹配的位置，可以看出匹配的过程是O(n)，之前还要单独生成next数组，时间复杂度是O(m)。所以整个KMP算法的时间复杂度是O(n+m)的。
+
+暴力的解法显而易见是O(n × m)，所以**KMP在字符串匹配中极大地提高了搜索的效率。**
+
+##### 构造next数组
+
+定义一个函数getNext来构建next数组，函数参数为指向next数组的指针，和一个字符串。 代码如下：
+
+```text
+void getNext(int* next, const string& s)
+```
+
+**构造next数组其实就是计算模式串s的前缀表的过程。** 主要有如下三步：
+
+1. 初始化
+2. 处理前后缀不相同的情况
+3. 处理前后缀相同的情况
+
+详解一下
+
+1. 初始化：
+
+定义两个指针i和j，j指向前缀末尾位置，i指向后缀末尾位置。
+
+> j的值等于前缀最后一个字符的下标，i的值等于后缀最后一个字符的下标
+
+然后还要对next数组进行初始化赋值，如下：
+
+```cpp
+int j = -1;
+next[0] = j;
+```
+
+j 为什么要初始化为 -1呢，因为之前说过 前缀表要统一减一的操作仅仅是其中的一种实现，我们这里选择j初始化为-1，下文还会给出j不初始化为-1的实现代码。
+
+next[i] 表示 i（包括i）之前最长相等的前后缀长度（其实就是j）
+
+所以初始化next[0] = j 。
+
+2. 处理前后缀不相同的情况
+
+因为j初始化为-1，那么i就从1开始，进行s[i] 与 s[j+1]的比较。
+
+所以遍历模式串s的循环下标i 要从 1开始，代码如下：
+
+```cpp
+for (int i = 1; i < s.size(); i++) {//对每个以i为后缀末尾的子串，找到它的最长相等前后缀记录到next[i]，前后缀不匹配则回退j，前后缀匹配则推进j
+```
+
+如果 s[i] 与 s[j+1]不相同，也就是遇到 前后缀末尾不相同的情况，就要向前回退。
+
+怎么回退呢？
+
+next[j]就是记录着j（包括j）之前的子串的相同前后缀的长度。
+
+那么 s[i] 与 s[j+1] 不相同，就要找 j+1前一个元素在next数组里的值（就是next[j]）。
+
+所以，处理前后缀不相同的情况代码如下：
+
+```cpp
+while (j >= 0 && s[i] != s[j + 1]) { // 前后缀不相同了
+    j = next[j]; // 向前回退
+}
+```
+
+3. 处理前后缀相同的情况
+
+如果 s[i] 与 s[j + 1] 相同，那么就说明同时向后移动i 和j 的时候找到了相同的前后缀，同时还要将j（前缀的长度）赋给next[i], 因为next[i]要记录相同前后缀的长度。
+
+代码如下：
+
+```text
+if (s[i] == s[j + 1]) { // 找到相同的前后缀
+    j++;
+}
+next[i] = j;
+```
+
+最后整体构建next数组的函数代码如下：
+
+```cpp
+void getNext(int* next, const string& s){
+    int j = -1;
+    next[0] = j;
+    for(int i = 1; i < s.size(); i++) { // 注意i从1开始
+        while (j >= 0 && s[i] != s[j + 1]) { // 前后缀不相同了
+            j = next[j]; // 向前回退
+        }
+        if (s[i] == s[j + 1]) { // 找到相同的前后缀
+            j++;
+        }
+        next[i] = j; // 将j（前缀的长度）赋给next[i]
+    }
+}
+```
+
+代码构造next数组的逻辑流程动画如下：
+
+![KMP精讲3](https://file1.kamacoder.com/i/algo/KMP%E7%B2%BE%E8%AE%B23.gif)
+
+得到了next数组后就可以用这个来做匹配了
 
 
 
@@ -4747,7 +4908,7 @@ empty() -- 返回栈是否为空
 
 这时需要想到用另一个队列作为备份
 
-**用两个队列que1和que2实现队列的功能，que2其实完全就是一个备份的作用**，把que1最后面的元素以外的元素都备份到que2，然后弹出最后面的元素，再把其他元素从que2导回que1。
+**用两个队列que1和que2实现栈的功能，que2其实完全就是一个备份的作用**，把que1最后面的元素以外的元素都备份到que2，然后弹出最后面的元素，再把其他元素从que2导回que1。
 
 ![225.用队列实现栈](https://file1.kamacoder.com/i/algo/225.%E7%94%A8%E9%98%9F%E5%88%97%E5%AE%9E%E7%8E%B0%E6%A0%88.gif)
 
@@ -4781,7 +4942,7 @@ public:
         int result = que1.front(); // 留下的最后一个元素就是要返回的值
         que1.pop();
         que1 = que2;            // 再将que2赋值给que1
-        while (!que2.empty()) { // 清空que2
+        while (!que2.empty()) { // 当que2不为空时持续pop()，以清空que2
             que2.pop();
         }
         return result;
@@ -4994,29 +5155,488 @@ class MyStack:
 
 ### 有效的括号
 
+```plIn
+#题目
 
+给定一个只包括 '('，')'，'{'，'}'，'['，']' 的字符串，判断字符串是否有效。
+有效字符串需满足：
 
+左括号必须用相同类型的右括号闭合。
+左括号必须以正确的顺序闭合。
+注意空字符串可被认为是有效字符串。
+```
 
+#### 思路
+
+括号匹配是使用栈解决的经典问题
+
+题目要求括号的顺序是一样的，如果有左括号出现那么相应的位置则必须要有右括号出现
+
+栈结构的特殊性，非常适合做**对称匹配**类的题目
+
+首先分析一下三种不匹配的情况：
+
+1. 左括号多了
+    ![括号匹配1](https://file1.kamacoder.com/i/algo/2020080915505387.png)
+2. 括号的类型没有匹配上
+    ![括号匹配2](https://file1.kamacoder.com/i/algo/20200809155107397.png)
+3. 右括号多了
+    ![括号匹配3](https://file1.kamacoder.com/i/algo/20200809155115779.png)
+
+我们的代码只要覆盖了这三种不匹配的情况，就不会出问题，可以看出 动手之前分析好题目的重要性。
+
+动画如下：
+
+![20.有效括号](https://file1.kamacoder.com/i/algo/20.%E6%9C%89%E6%95%88%E6%8B%AC%E5%8F%B7.gif)
+
+第一种情况：已经遍历完了字符串，但是栈不为空，说明有相应的左括号没有右括号来匹配，所以return false
+
+第二种情况：遍历字符串匹配的过程中，发现栈里没有要匹配的字符。所以return false
+
+第三种情况：遍历字符串匹配的过程中，栈已经为空了，没有匹配的字符了，说明右括号没有找到对应的左括号return false
+
+那么什么时候说明左括号和右括号全都匹配了呢，就是字符串遍历完之后，栈是空的，就说明全都匹配了。
+
+分析完之后，代码其实就比较好写了，
+
+但还有一些技巧，在匹配左括号的时候，右括号先入栈，就只需要比较当前元素和栈顶相不相等就可以了，比左括号先入栈代码实现要简单的多了！
+
+遍历到左括号时向栈内存对应的右括号，遍历到右括号时从栈中取出栈顶元素作比较（是否相等，不相等则说明左右括号不匹配了，直接返回false）；字符串遍历结束后若栈不为空，则说明左括号多了，不匹配；字符串遍历未结束时（下标索引的for循环未结束）若栈为空，则说明右括号多了，不匹配
+
+实现C++代码如下：
+
+```cpp
+class Solution {
+public:
+    bool isValid(string s) {
+        if (s.size() % 2 != 0) return false; //剪枝：如果s的长度为奇数，一定不匹配
+        stack<char> st;
+        for (int i = 0; i < s.size(); i++) {
+            if (s[i] == '(') st.push(')');
+            else if (s[i] == '{') st.push('}');
+            else if (s[i] == '[') st.push(']');
+            // 以上完成向栈内添加对应的右括号元素，下面就开始判断出现右括号时是否匹配
+            // 第三种情况：遍历字符串匹配的过程中，栈已经为空了，没有匹配的字符了，说明右括号没有找到对应的左括号 return false
+            // 第二种情况：遍历字符串匹配的过程中，发现栈里没有我们要匹配的字符。所以return false
+            else if (st.empty() || st.top() != s[i]) return false;
+            else st.pop(); // st.top() 与 s[i]相等，栈弹出元素，便于进行下一个下标索引的匹配（for循环）
+        }//for循环结束,字符串遍历结束
+        // 第一种情况：此时我们已经遍历完了字符串，但是栈不为空，说明有相应的左括号没有右括号来匹配，所以return false，否则就return true
+        return st.empty();
+    }
+};
+```
+
+```python
+class Solution:
+    def isValid(self, s: str) -> bool:
+        stack = []
+        
+        for item in s:
+            if item == '(':
+                stack.append(')')
+            elif item == '[':
+                stack.append(']')
+            elif item == '{':
+                stack.append('}')
+            elif not stack or stack[-1] != item:
+                return False
+            else:
+                stack.pop()
+        
+        return True if not stack else False
+```
 
 ### 删除字符串中的所有相邻重复项
 
+```plain
+#题目
+
+给出由小写字母组成的字符串 S，重复项删除操作会选择两个相邻且相同的字母，并删除它们。
+在 S 上反复执行重复项删除操作，直到无法继续删除。
+在完成所有重复项删除操作后返回最终的字符串。答案保证唯一。
+
+例如：输入abbaca，输出ca
+```
+
+#### 思路
+
+本题与上题有效的括号是同类型的匹配问题，同样要匹配随后作消除处理，那么同样也可以用栈来解决
+
+在删除相邻的重复项时，需要知道当前遍历的这个元素，在前一位是否遍历过一样数值的元素，用栈来存放遍历过的元素，当遍历当前的这个元素时，查看栈顶元素是否与当前元素相同，随后再去做对应的消除处理
+
+![1047.删除字符串中的所有相邻重复项](https://file1.kamacoder.com/i/algo/1047.%E5%88%A0%E9%99%A4%E5%AD%97%E7%AC%A6%E4%B8%B2%E4%B8%AD%E7%9A%84%E6%89%80%E6%9C%89%E7%9B%B8%E9%82%BB%E9%87%8D%E5%A4%8D%E9%A1%B9.gif)
 
 
 
+从栈中弹出剩余元素，因为栈里弹出的元素是倒序的，所以需要再对字符串反转一下
+
+C++代码
+
+```c++
+class Solution {
+public:
+    string removeDuplicates(string S) {
+        stack<char> st;
+        for (char s : S) {
+            //栈为空或者栈顶元素不等于当前遍历的元素时需要向栈内压入该元素
+            if (st.empty() || s != st.top()) {
+                st.push(s);
+            } else {
+                st.pop(); // s 与 st.top()相等的情况
+            }
+        }//循环结束时所有字符元素已经遍历完成，已经删除所有相邻的重复元素
+        string result = "";
+        while (!st.empty()) { // 将栈中元素放到result字符串汇总
+            result += st.top();
+            st.pop();
+        }
+        reverse (result.begin(), result.end()); // 此时字符串需要反转一下
+        return result;
+
+    }
+};
+
+
+//用字符串直接作为栈	  尾--->头，字符串尾部作为模拟栈的栈顶 
+class Solution {
+public:
+    string removeDuplicates(string S) {
+        string result;//用string模拟栈，存储最终结果
+        for(char s : S) {//遍历原字符串的每个字符
+            if(result.empty() || result.back() != s) {
+                result.push_back(s);//压入栈，追加到字符串末尾，即压入到栈顶
+            }
+            else {//栈顶字符 == 当前字符（相邻重复）
+                result.pop_back();//弹出栈顶，删除字符串中的最后一个字符
+            }
+        }
+        return result;
+    }
+};
+```
+
+```python
+# 方法一，使用栈
+class Solution:
+    def removeDuplicates(self, s: str) -> str:
+        res = list()
+        for item in s:
+            if res and res[-1] == item:#res不为空且res栈顶元素等于遍历到的元素则删除
+                res.pop()
+            else:
+                res.append(item)
+        #遍历结束后 res = ['c','a']
+        return "".join(res)  # 字符串拼接
+    
+#方法二，使用双指针模拟栈
+class Solution:
+    def removeDuplicates(self, s: str) -> str:
+        res = list(s)#将字符串转化为列表
+        slow = fast = 0#初始化快慢指针
+        length = len(res)
+
+        while fast < length:
+            # 如果一样直接换，不一样会把后面的填在slow的位置
+            res[slow] = res[fast]
+            
+            # 如果发现和前一个一样，就退一格指针
+            if slow > 0 and res[slow] == res[slow - 1]:
+                slow -= 1
+            else:
+                slow += 1
+            fast += 1
+            
+        return ''.join(res[0: slow])
+```
 
 ### 逆波兰表达式求值
 
+```plain
+#题目
 
+根据 逆波兰表示法，求表达式的值	逆波兰式：后缀表达式，将运算符写在操作数之后
+有效的运算符包括 + ,  - ,  * ,  / 。每个运算对象可以是整数，也可以是另一个逆波兰表达式。
+```
 
+#### 思路
 
+递归就是栈来实现的，**栈与递归之间在某种程度上是可以转换的**
+
+逆波兰表达式相当于二叉树的后序遍历，将运算符作为中间节点，按照后续遍历的规则画出一个二叉树
+
+![150.逆波兰表达式求值](https://file1.kamacoder.com/i/algo/150.%E9%80%86%E6%B3%A2%E5%85%B0%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B1%82%E5%80%BC.gif)
+
+```c++
+class Solution {
+public:
+    int evalRPN(vector<string>& tokens) {
+        stack<int> st;
+        for (int i = 0;i < tokens.size();i++){
+            if (tokens[i] == "+" || tokens[i] == "-" || tokens[i] == "*" || tokens[i] == "/"){
+                long long nums1 = st.top();
+                st.pop();
+                long long nums2 = st.top();
+                st.pop();
+                if (tokens[i] == "+"){
+                    st.push(nums2 + nums1);
+                }
+                if (tokens[i] == "-" ){
+                    st.push(nums2 - nums1);
+                }
+                if (tokens[i] == "*"){
+                    st.push(nums2 * nums1);
+                }
+                if (tokens[i] == "/"){
+                    st.push(nums2 / nums1);
+                }
+            }else{
+                st.push(stoll(tokens[i]));
+            }
+        }
+        long long result = st.top();
+        st.pop();
+        return result;
+    }
+};
+```
+
+```python
+#方法一，c++逻辑的镜像
+class Solution:
+    def evalRPN(self, tokens: List[str]) -> int:
+        stack = []
+        for i in range(len(tokens)):
+            if tokens[i] == '+' or tokens[i] == '-' or tokens[i] == '*' or tokens[i] == '/':
+                
+                #注意这一段一定要放在第一层if循环内，因为若放在if外，stack可能是空的栈，取不到元素是会报错的
+                nums2 = stack[-1]
+                stack.pop()
+                nums1 = stack[-1]
+                stack.pop()
+                
+                if tokens[i] == '+':
+                    stack.append(nums1 + nums2)
+                if tokens[i] == '-':
+                    stack.append(nums1 - nums2)
+                if tokens[i] == '*':
+                    stack.append(nums1 * nums2)
+                if tokens[i] == '/':
+                    stack.append(int(nums1 / nums2))#python没有整除，用int()向零取整
+            else:
+                stack.append(int(tokens[i]))
+        result = stack[-1]
+        stack.pop()
+        return result
+
+#方法二
+from operator import add, sub, mul #+、-、*
+
+def div(x, y):
+    # 使用整数除法的向零取整方式
+    return int(x / y) if x * y > 0 else -(abs(x) // abs(y))
+
+class Solution(object):
+    op_map = {'+': add, '-': sub, '*': mul, '/': div}
+    
+    def evalRPN(self, tokens: List[str]) -> int:
+        stack = []
+        for token in tokens:
+            if token not in {'+', '-', '*', '/'}:
+                stack.append(int(token))
+            else:
+                op2 = stack.pop()
+                op1 = stack.pop()
+                stack.append(self.op_map[token](op1, op2))  # 第一个出来的在运算符后面
+        return stack.pop()
+```
 
 ### 滑动窗口最大值
 
+```plain
+#题目
+
+给定一个数组nums，有一个大小为k的滑动窗口从数组的最左侧移动到数组的最右侧。你只可以看到在滑动窗口内的k个数字。滑动窗口每次只向右移动一位
+返回滑动窗口中的最大值
+```
+
+#### 思路
+
+首先引入单调队列的概念
+队列里元素始终保持**单调递增/单调递减**，必须使用**双端队列`deque`**，支持**队头、队尾**同时删去元素
+
+此题若使用暴力方法，遍历一遍的过程中每次从窗口中再找到最大的数字，明显是O(nxk)的时间复杂度
+
+我们需要这样一个队列：随着窗口移动，队列一进一出，每次移动之后队列告诉我们里面的最大值是什么
+每次窗口移动的时候，调用que.pop(滑动窗口中移除元素的数值)，que.push(滑动窗口添加元素的数值)，然后que.front()就返回我们要的最大值。
+
+举个例子观察单调队列是如何维护队列里的元素
+
+![239.滑动窗口最大值](https://file1.kamacoder.com/i/algo/239.%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%9C%80%E5%A4%A7%E5%80%BC.gif)
+
+对于窗口里的元素{2, 3, 5, 1 ,4}，单调队列里只维护{5, 4} 就够了，保持单调队列里单调递减，此时队列出口元素就是窗口里最大元素
+
+单调队列的套路：
+
+1. 右边入（元素进入队尾，同时维护队列单调性）
+   push，如果push的元素value大于队尾元素的值，那么就将队尾（即队列入口）的元素弹出
+2. 左边出（元素离开队首）
+   pop，如果窗口移除的元素value等于单调队列的出口元素，那么队列弹出元素
+3. 记录/维护答案（队首元素）
+   只要通过`que.front()`就可以返回当前窗口的最大值
+
+![239.滑动窗口最大值-2](https://file1.kamacoder.com/i/algo/239.%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%9C%80%E5%A4%A7%E5%80%BC-2.gif)
+
+```c++
+class Solution {
+private:
+    class MyQueue { //单调队列（从大到小）
+    public:
+        deque<int> que; // 使用deque来实现单调队列
+        // 每次弹出的时候，比较当前要弹出的数值是否等于队列出口元素的数值，如果相等则弹出。
+        // 同时pop之前判断队列当前是否为空。
+        void pop(int value) {
+            if (!que.empty() && value == que.front()) {
+                que.pop_front();
+            }
+        }
+        // 如果push的数值大于入口元素的数值，那么就将队列后端的数值弹出，直到push的数值小于等于队列入口元素的数值为止。
+        // 这样就保持了队列里的数值是单调从大到小的了。
+        void push(int value) {
+            while (!que.empty() && value > que.back()) {
+                que.pop_back();
+            }
+            que.push_back(value);
+
+        }
+        // 查询当前队列里的最大值 直接返回队列前端也就是front就可以了。
+        int front() {
+            return que.front();
+        }
+    };
+public:
+    vector<int> maxSlidingWindow(vector<int>& nums, int k) {
+        MyQueue que;
+        vector<int> result;
+        for (int i = 0; i < k; i++) { // 先将前k的元素放进队列
+            que.push(nums[i]);
+        }
+        result.push_back(que.front()); // result 记录前k的元素的最大值
+        for (int i = k; i < nums.size(); i++) {
+            que.pop(nums[i - k]); // 滑动窗口移除最前面元素
+            que.push(nums[i]); // 滑动窗口前加入最后面的元素
+            result.push_back(que.front()); // 记录对应的最大值
+        }
+        return result;
+    }
+};
 
 
+//方法二
+class Solution {
+public:
+    vector<int> maxSlidingWindow(vector<int>& nums, int k) {
+        int n = nums.size();
+        vector<int> ans(n - k + 1); // 窗口个数
+        deque<int> q; // 双端队列
 
+        for (int i = 0; i < n; i++) {
+            // 1. 右边入
+            while (!q.empty() && nums[q.back()] <= nums[i]) {
+                q.pop_back(); // 维护 q 的单调性
+            }
+            q.push_back(i); // 注意保存的是下标，这样下面可以判断队首是否离开窗口
+
+            // 2. 左边出
+            int left = i - k + 1; // 窗口左端点
+            if (q.front() < left) { // 队首离开窗口
+                q.pop_front();
+            }
+
+            // 3. 在窗口左端点处记录答案
+            if (left >= 0) {
+                // 由于队首到队尾单调递减，所以窗口最大值就在队首
+                ans[left] = nums[q.front()];
+            }
+        }
+
+        return ans;
+    }
+};
+```
+
+```python
+from collections import deque
+class Solution:
+    def maxSlidingWindow(self, nums: List[int], k: int) -> List[int]:
+        max_list = [] # 结果集合
+        kept_nums = deque() # 单调队列
+
+        for i in range(len(nums)):
+            update_kept_nums(kept_nums, nums[i]) # 右侧新元素加入
+
+            if i >= k and nums[i - k] == kept_nums[0]: # 左侧旧元素如果等于单调队列头元素，需要移除头元素
+                kept_nums.popleft()
+
+            if i >= k - 1:
+                max_list.append(kept_nums[0])
+
+        return max_list
+
+def update_kept_nums(kept_nums, num): # num 是新加入的元素
+    # 所有小于新元素的队列尾部元素，在新元素出现后，都是没有价值的，都需要被移除
+    while kept_nums and num > kept_nums[-1]:
+        kept_nums.pop()
+
+    kept_nums.append(num)
+    
+
+class Solution:
+    def maxSlidingWindow(self, nums: List[int], k: int) -> List[int]:
+        ans = [0] * (len(nums) - k + 1)  # 由窗口个数提前初始化答案数组
+        q = deque()  # 双端队列，队列内的元素为原数组nums的下标
+
+        for i, x in enumerate(nums):
+            # 1. 右边入
+            #当队列不为空且队尾元素小于等于当前下标索引对应的num时进入循环
+            #stack[-1]栈顶元素
+            #循环比较，直到当前num小于队尾元素或者没有队尾元素了（空队列）
+            while q and nums[q[-1]] <= x:
+                q.pop()  # 维护 q 的单调性
+            q.append(i)  # 注意保存的是下标，这样下面可以判断队首是否离开窗口
+
+            # 2. 左边出
+            left = i - k + 1  # 窗口左端点
+            if q[0] < left:  # 队首离开窗口
+                q.popleft()
+
+            # 3. 在窗口左端点处记录答案
+            if left >= 0:
+                # 由于队首到队尾单调递减，所以窗口最大值就在队首
+                ans[left] = nums[q[0]]
+
+        return ans
+```
 
 ### 前K个高频元素
+
+```plain
+#题目
+
+给定一个非空的整数数组，返回其中出现频率前k高的元素
+```
+
+#### 思路
+
+本题主要涉及如下三块内容：
+
+1. 统计元素出现的频率
+2. 对频率排序
+3. 找出前k个高频元素
+
+统计元素出现的频率，可以使用map来进行统计
+
+对频率进行排序，可以用**优先级队列**
 
 
 
@@ -5340,9 +5960,117 @@ root.right = TreeNode(3)    # 根的右子节点
 
 ### 回溯算法理论基础
 
+回溯法是一种搜索的方式
 
+回溯是递归的副产品，只要有递归就会有回溯
 
+回溯函数就是递归函数，这两个指的是同一个函数
 
+#### 回溯法的效率
+
+回溯的本质是穷举，穷举所有可能，然后选出想要的答案；若是想要让回溯法高效一些，可以加一些**剪枝**的操作，但也改变不了回溯法就是穷举的本质
+
+> 剪枝：通过预判排除无效分支，提前终止没必要的递归/搜索/遍历
+> 剪枝主要用在搜索，回溯，动态规划，博弈搜索；其中回溯/DFS剪枝最常见
+> **剪枝 = 提前判断 + 放弃无效路径**
+
+很多问题没得选，没有很高效的解法，能用暴力解法完成就已是万事大吉
+
+#### 回溯法解决的问题
+
+回溯法一般可以解决如下几种问题：
+
+- 组合问题：N个数里面按一定规则找出k个数的集合
+- 切割问题：一个字符串按一定规则有几种切割方式
+- 子集问题：一个N个数的集合里有多少符合条件的子集
+- 排列问题：N个数按一定规则全排列，有几种排列方式
+- 棋盘问题：N皇后，解数独等等
+
+> 组合：不强调元素的顺序
+>
+> 排列：强调元素的顺序
+>
+> 排列有序，组合无序
+
+回溯法解决的问题都可以抽象为**树形**结构，因为回溯法解决的都是在集合中递归查找子集，**集合的大小就构成了数的宽度，递归的深度就构成了树的深度**
+
+递归就必须有终止条件，所以必然是一颗高度有限的树
+
+#### 回溯法模版
+
+回溯三部曲：
+
+- 回溯函数模版返回值以及参数
+
+在回溯算法中，函数返回值一般为void，void表示**这个函数执行完后，不向调用者返回任何数据**
+
+回溯算法需要的参数不像二叉树递归的时候那么容易一次性确定下来，所以一般是先写逻辑，然后需要什么参数，就填什么参数
+
+回溯函数伪代码如下：
+
+```text
+void backtracking(参数)
+```
+
+- 回溯函数终止条件
+
+回溯法的问题都可以抽象为树形结构，那么遍历树形结构一定要有终止条件
+
+从树中可以看出，一般来说搜到叶子结点了也就找到了满足条件的一条答案，把这个答案存放起来并结束本层递归
+
+回溯函数终止条件伪代码如下：
+
+```text
+if (终止条件) {
+    存放结果;
+    return;
+}
+```
+
+- 回溯搜索的遍历过程
+
+回溯法一般是在集合中递归搜索，集合的大小构成了树的宽度，递归的深度构成的树的深度。
+
+如图：
+
+![回溯算法理论基础](https://file1.kamacoder.com/i/algo/20210130173631174.png)
+
+注意图中，特意举例集合大小和孩子的数量是相等的！
+
+回溯函数遍历过程伪代码如下：
+
+```text
+for (选择：本层集合中元素（树中节点孩子的数量就是集合的大小）) {
+    处理节点;
+    backtracking(路径，选择列表); // 递归
+    回溯，撤销处理结果
+}
+```
+
+for循环就是遍历集合区间，可以理解一个节点有多少个孩子，这个for循环就执行多少次。
+
+backtracking这里自己调用自己，实现递归。
+
+从图中看出**for循环可以理解是横向遍历，backtracking（递归）就是纵向遍历**，这样就把这棵树全遍历完了，一般来说，搜索叶子节点就是找的其中一个结果了。
+
+分析完过程，回溯算法模板框架如下：
+
+```text
+void backtracking(参数) {
+    if (终止条件) {
+        存放结果;
+        return;
+    }
+
+    for (选择：本层集合中元素（树中节点孩子的数量就是集合的大小）) {
+        处理节点;
+        backtracking(路径，选择列表); // 递归
+        回溯，撤销处理结果
+    }
+}
+```
+
+**这份模板很重要，后面做回溯法的题目都靠它了！**
 
 ### 组合问题
 
