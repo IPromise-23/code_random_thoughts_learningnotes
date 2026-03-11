@@ -7,7 +7,7 @@
 #### 算法效率
 
 - 时间效率,即**时间复杂度**,衡量一个算法的<u>**运行速度**</u>	目前更加关注时间复杂度
-- 空间效率,即**空间复杂度**,衡量一个算法**所<u>需要的==额外==空间**</u>
+- 空间效率,即**空间复杂度**,衡量一个算法**所需要的==额外==空间**
 
 #### 大O的渐进表示法规则
 
@@ -5328,7 +5328,8 @@ class Solution:
                 res.append(item)
         #遍历结束后 res = ['c','a']
         return "".join(res)  # 字符串拼接
-    
+
+
 #方法二，使用双指针模拟栈
 class Solution:
     def removeDuplicates(self, s: str) -> str:
@@ -5638,9 +5639,122 @@ class Solution:
 
 对频率进行排序，可以用**优先级队列**
 
+优先级队列就是一个披着队列外衣的**堆**，优先级队列对外接口只是从**队头取元素，队尾添加元素**
 
+优先级队列内部元素是自动依照元素的权值排列，缺省情况下`priority_queue`利用`max-heap`（大顶堆）完成对元素的排序，这个大顶堆是以`vector`为表现形式的`complete binary tree`（完全二叉树）。
 
+**堆**是一颗完全二叉树，树中每个节点的值都不小于（或者不大于）其左右孩子的值。如果父亲节点是大于等于左右孩子即为大顶堆，小于等于左右孩子就是小顶堆
 
+- 大顶堆（堆头是最大元素）
+- 小顶堆（堆头是最小元素）
+
+大小顶堆可以直接用`priority_queue`（优先级队列）就可以了，底层实现是一样的，从小到大排就是小顶堆，从大到小排就是大顶堆
+
+本题要使用优先级队列来对部分频率进行排序，因为只需要**维护k个有序的序列**就可以了，所以不需要使用快排（因为快排要将`map`转换为`vector`然后再对整个数组进行排序，是浪费时间的）
+
+此题要求前k个高频元素，如果使用大顶堆的话，定义一个大小为k的大顶堆，在每次移动更新大顶堆的时候，每次弹出都把最大的元素弹出去了，这样就无法保留下来前k个高频元素了
+
+而且使用大顶堆的话需要把所有元素都进行排序，所以如果只排序k个元素的话要使用小顶堆，小顶堆每次将最小的元素弹出，最后小顶堆里积累的是前k个最大元素
+
+寻找前k个最大元素流程如图所示：（图中的频率只有三个，所以正好构成一个大小为3的小顶堆，如果频率更多一些，则用这个小顶堆进行扫描）
+
+![347.前K个高频元素](https://file1.kamacoder.com/i/algo/347.%E5%89%8DK%E4%B8%AA%E9%AB%98%E9%A2%91%E5%85%83%E7%B4%A0.jpg)
+
+我们来看一下C++代码：
+
+```cpp
+class Solution {
+public:
+    // 小顶堆
+    class mycomparison {
+    public:
+        bool operator()(const pair<int, int>& lhs, const pair<int, int>& rhs) {
+            return lhs.second > rhs.second;
+        }
+    };
+    vector<int> topKFrequent(vector<int>& nums, int k) {
+        // 要统计元素出现频率
+        unordered_map<int, int> map; // map<nums[i],对应出现的次数>
+        for (int i = 0; i < nums.size(); i++) {
+            map[nums[i]]++;
+        }
+
+        // 对频率排序
+        // 定义一个小顶堆，大小为k
+        priority_queue<pair<int, int>, vector<pair<int, int>>, mycomparison> pri_que;
+
+        // 用固定大小为k的小顶堆，扫面所有频率的数值
+        for (unordered_map<int, int>::iterator it = map.begin(); it != map.end(); it++) {
+            pri_que.push(*it);
+            if (pri_que.size() > k) { // 如果堆的大小大于了K，则队列弹出，保证堆的大小一直为k
+                pri_que.pop();
+            }
+        }
+
+        // 找出前K个高频元素，因为小顶堆先弹出的是最小的，所以倒序来输出到数组
+        vector<int> result(k);
+        for (int i = k - 1; i >= 0; i--) {
+            result[i] = pri_que.top().first;
+            pri_que.pop();
+        }
+        return result;
+
+    }
+};
+```
+
+python
+
+```python
+#方法一
+import heapq
+class Solution:
+    def topKFrequent(self, nums: List[int], k: int) -> List[int]:
+        #要统计元素出现频率
+        map_ = {} #nums[i]:对应出现的次数
+        for i in range(len(nums)):
+            map_[nums[i]] = map_.get(nums[i], 0) + 1
+        
+        #对频率排序
+        #定义一个小顶堆，大小为k
+        pri_que = [] #小顶堆
+        
+        #用固定大小为k的小顶堆，扫描所有频率的数值
+        for key, freq in map_.items():
+            heapq.heappush(pri_que, (freq, key))
+            if len(pri_que) > k: #如果堆的大小大于了K，则队列弹出，保证堆的大小一直为k
+                heapq.heappop(pri_que)
+        
+        #找出前K个高频元素，因为小顶堆先弹出的是最小的，所以倒序来输出到数组
+        result = [0] * k
+        for i in range(k-1, -1, -1):
+            result[i] = heapq.heappop(pri_que)[1]
+        return result
+    
+#方法二
+class Solution:
+    def topKFrequent(self, nums: List[int], k: int) -> List[int]:
+        # 使用字典统计数字出现次数
+        time_dict = defaultdict(int)
+        for num in nums:
+            time_dict[num] += 1
+        # 更改字典，key为出现次数，value为相应的数字的集合
+        index_dict = defaultdict(list)
+        for key in time_dict:
+            index_dict[time_dict[key]].append(key)
+        # 排序
+        key = list(index_dict.keys())
+        key.sort()
+        result = []
+        cnt = 0
+        # 获取前k项
+        while key and cnt != k:
+            result += index_dict[key[-1]]
+            cnt += len(index_dict[key[-1]])
+            key.pop()
+
+        return result[0: k]
+```
 
 ### 栈与队列__总结
 
@@ -5660,7 +5774,7 @@ class Solution:
 
 - **节点**：二叉树的基本单元：包括` 数据（值）`、`指向左子节点的指针/引用`、 `指向右子节点的指针/引用`
 - **根节点**：树最顶端的节点，没有父节点
-- **叶子节点**：没有左右子节点的节点（数的末梢）
+- **叶子节点**：没有左右子节点的节点（树的末梢）
 - **节点的度**：节点拥有的子节点数量（二叉树中节点的度只能为0、1、2，最多只能为2）
 - **数的深度/高度**：从根节点到最远叶子节点的路径上的节点数
 
@@ -5681,6 +5795,8 @@ class Solution:
 ![img](https://file1.kamacoder.com/i/algo/20200920221638903.png)
 
 优先级队列是一个堆，堆就是一颗完全二叉树，同时保证父子节点的顺序关系
+
+[优先级队列应用__栈与队列](#前k个高频元素)
 
 #### 二叉搜索树
 
@@ -5820,15 +5936,246 @@ root.right = TreeNode(3)    # 根的右子节点
 2. **确定终止条件**：递归算法运行时经常会遇到栈溢出的错误，就是没写终止条件或者终止条件不对，操作系统也是用一个栈的结构来保存每一层递归的信息，如果递归没有终止，操作系统的内存栈必然就会溢出
 3. **确定单层递归的逻辑**：确定每一层递归需要处理的信息，重复调用自己来实现递归
 
->  以前序遍历为例：
+>  以前序遍历（<u>中左右</u>）为例：
 
-1. **确定递归函数的参数和返回值**：
-2. **确定终止条件**：
-3. **确定单层递归的逻辑**：
+1. **确定递归函数的参数和返回值**：因为要打印出前序遍历节点的数值，所以参数里需要传入vecotr来放节点的数值，除了这一点就不需要再处理什么别的数据了，也不需要有返回值，所以递归函数返回的类型就是void
+
+   > `vector`是C++_STL中最常用的容器之一，是动态可伸缩的数组，可以随意往里加/减元素，它会在底层自动管理内存
+   >
+   > `void`是C++的关键字，本意为**空/无**，通常用`void 函数名()`表示函数执行完成后不返回任何值;用`函数名(void)`表示函数无参数
+   >
+   > ```c++
+   > //示例
+   > #include <iostream>
+   > #include <vector>
+   > using namespace std;
+   > 
+   > // 无返回值的函数：仅打印vector内容，不需要返回结果
+   > void printVector(const vector<int>& vec) {
+   >     if (vec.empty()) {
+   >         cout << "vector 为空" << endl;
+   >         return; // 无返回值的函数也能用return，仅表示提前结束
+   >     }
+   >     cout << "vector 内容：";
+   >     for (int num : vec) {
+   >         cout << num << " ";
+   >     }
+   >     cout << endl;
+   > }
+   > 
+   > int main() {
+   >     vector<int> nums = {10, 20, 30};
+   >     printVector(nums); // 调用无返回值函数，无需接收结果
+   >     
+   >     vector<int> emptyVec;
+   >     printVector(emptyVec);
+   >     
+   >     return 0;
+   > }
+   > 
+   > //运行结果
+   > //vector 内容：10 20 30 
+   > //vector 为空
+   > ```
+
+   ```c++
+   void traversal(TreeNode* cur, vector<int>& vec)
+   //遍历二叉树，并将遍历到的节点值存入一个int类型的vector中；函数无返回值，仅通过参数的引用实现数据的输出，将遍历结果写入外部的vector
+   //TreeNode是自定义的二叉树节点类型（通常是结构体/类，包含节点值和左右点指针）；*表示这是一个指针，cur指向当前正在遍历的二叉树节点；整体作用是告诉函数从哪个节点开始遍历
+   //vector<int>表示存储整数的动态数组；&是引用符号，表示这是引用传递，而不是简单的值拷贝；整体是一个引用传递的动态数组，用于存储遍历结果，作用是避免拷贝整个vector来节省内存，此外内部对vec的修改会直接作用于外部传入的原vector
+   ```
+
+   > 这里来区分一下引用传递&和值拷贝：
+   > 值拷贝：把文件复印一份给函数，函数修改的是复印件，原件完全不受影响
+   > 引用传递：给函数一个文件的快捷方式/别名，函数直接操作原件，修改会直接反映到原件上
+
+2. **确定终止条件**：在递归过程中，当前遍历的节点是空了，那么本层递归就要结束了；因此如果当前遍历的这个节点是空，就直接return
+
+   ```c++
+   if (cur == NULL) return;
+   ```
+
+3. **确定单层递归的逻辑**：前序遍历是中左右的顺序，所以在单层递归的逻辑是要先去取出中节点的数值
+
+   ```c++
+   vec.push_back(cur->val);    // 中
+   traversal(cur->left, vec);  // 左
+   traversal(cur->right, vec); // 右
+   ```
+
+   单层递归的逻辑就是按照中左右的顺序来处理的，这样二叉树的前序遍历，基本就写完了，再看一下完整代码：
+
+   前序遍历：
+
+   ```cpp
+   class Solution {
+   public:
+       //定义辅助递归函数traversal
+       void traversal(TreeNode* cur, vector<int>& vec) {
+           //空节点是二叉树的叶子节点的子节点，没有值可收集也没有子树可遍历
+           if (cur == NULL) return;//当前节点是空，说明没有值可以收集，直接退出递归层
+           vec.push_back(cur->val);    // 中，末尾追加
+           traversal(cur->left, vec);  // 左
+           traversal(cur->right, vec); // 右
+       }
+       //定义对外接口函数
+       vector<int> preorderTraversal(TreeNode* root) {
+           vector<int> result;//存储遍历结果的局部容器
+           traversal(root, result);//调用递归函数填充结果
+           return result;
+       }
+   };
+   ```
+
+python
+
+```python
+# 前序遍历-递归-LC144_二叉树的前序遍历
+# Definition for a binary tree node.
+# class TreeNode:
+#     def __init__(self, val=0, left=None, right=None):
+#         self.val = val
+#         self.left = left
+#         self.right = right
+
+class Solution:
+    def preorderTraversal(self, root: TreeNode) -> List[int]:
+        res = []#初始化空列表，存储遍历结果
+        
+        #定义内部的递归函数dfs，深度优先搜索
+        def dfs(node):
+            if node is None:
+                return
+            
+            res.append(node.val)
+            dfs(node.left)#收集当前节点的值
+            dfs(node.right)
+        
+        #调用dfs，从根节点1开始遍历
+        dfs(root)
+        return res
+###前中后序遍历的前中后表示的是 中间节点 在前or中or后，比如若为中序遍历，即左中右，那么要先深入到最左端的叶子节点再回到中间节点再回到左节点的遍历
+```
 
 ### 二叉树的迭代遍历
 
+在[栈与队列](#栈与队列)中已知匹配问题是栈的强项，递归的实现就是：**每一次递归调用都会把函数的局部变量、参数值和返回地址等压入调用栈中**，然后递归返回的时候，从栈顶弹出上一次递归的各项参数，也是递归能返回上一层位置的原因
 
+#### 前序遍历
+
+前序遍历是中左右，每次先处理的是中间节点；所以要先将根节点放入栈中，然后将右孩子加入栈，再加入左孩子
+
+![二叉树前序遍历（迭代法）](https://file1.kamacoder.com/i/algo/%E4%BA%8C%E5%8F%89%E6%A0%91%E5%89%8D%E5%BA%8F%E9%81%8D%E5%8E%86%EF%BC%88%E8%BF%AD%E4%BB%A3%E6%B3%95%EF%BC%89.gif)
+
+```c++
+//前序遍历，代码中空节点不入栈
+class Solution {
+public:
+    vector<int> preorderTraversal(TreeNode* root) {
+        //用于模拟递归调用栈，存储的是指向TreeNode的指针
+        stack<TreeNode*> st;
+        vector<int> result;
+        if (root == NULL) return result;
+        //初始化栈，先把根节点压入栈
+        st.push(root);
+        //核心循环：只要栈不为空，就继续遍历（模拟递归的调用栈未空则继续）
+        while (!st.empty()) {
+            //取出栈顶节点，st.top()返回的是栈中存储的TreeNode*类型元素，必须用同类型指针变量来接收，node不是完整的TreeNode对象，只是一个存储对象内存地址的变量
+            TreeNode* node = st.top();                       // 中
+            st.pop();//弹出栈顶节点，已经取出了就无需保留在栈中
+            //收集当前节点的值，node是指针，必须用->访问节点的成员变量val
+            result.push_back(node->val);
+            //压入右子节点（空节点不压入，避免处理空指针）
+            if (node->right) st.push(node->right);           // 右（空节点不入栈）
+            if (node->left) st.push(node->left);             // 左（空节点不入栈）
+        }
+        return result;
+    }
+};
+```
+
+> `->`是c++中**指针访问成员变量/函数**的语法符号，和`.`普通对象访问成员是一对互补的语法
+>
+> .	  访问 普通对象/对象引用 的成员
+>
+> ->	访问 指针指向的对象 的成员
+
+#### 中序遍历
+
+在前序遍历的迭代过程中，有两个操作：
+
+1. 处理：将元素放进result数组中
+2. 访问：遍历节点
+
+前序遍历的顺序是中左右，先访问的元素是中间节点，要处理的元素也是中间节点，所以刚刚才能写出相对简洁的代码，**因为<u>要访问的元素</u>和<u>要处理的元素</u>顺序是一致的，都是中间节点。**
+
+**因为前序遍历中访问节点（遍历节点）和处理节点（将元素放进result数组中）可以同步处理，但是中序就无法做到同步**
+
+中序遍历是左中右，先访问的是二叉树顶部的节点，然后再一层层向下访问，直到到达树左面的最底部，然后再开始处理节点（即把节点的数值放进result数组中），这就造成了**处理顺序和访问顺序不一致的结果**
+
+因此在使用迭代法写中序遍历时，需要借助指针的遍历来帮助访问节点，栈则用来处理节点上的元素
+
+![二叉树中序遍历（迭代法）](https://file1.kamacoder.com/i/algo/%E4%BA%8C%E5%8F%89%E6%A0%91%E4%B8%AD%E5%BA%8F%E9%81%8D%E5%8E%86%EF%BC%88%E8%BF%AD%E4%BB%A3%E6%B3%95%EF%BC%89.gif)
+
+**中序遍历，可以写出如下代码：**
+
+```cpp
+class Solution {
+public:
+    vector<int> inorderTraversal(TreeNode* root) {
+        vector<int> result;
+        //这里栈的作用时记录遍历路径，方便回溯到根节点；用于暂存待处理的根节点
+        stack<TreeNode*> st;
+        //遍历指针cur，负责访问节点（先走到最左），初始指向根节点
+        //cur的核心作用是替代递归中的逐层深入左子树的过程
+        TreeNode* cur = root;
+        //循环条件：还有未访问的节点（需要继续深入左子树）or栈中还有暂存的根节点（需要回溯）
+        while (cur != NULL || !st.empty()) {
+            //分支1；cur不为空，继续深入左子树
+            if (cur != NULL) { // 指针来访问节点，访问到最底层
+                st.push(cur); // 暂存当前节点到栈中
+                cur = cur->left;                // 移动cur到左子节点，继续找最左节点
+            } else {//分支2；cur为空，左子树遍历完了，回溯处理栈中的根节点
+                cur = st.top(); //取出栈顶的待处理根节点，此时左子树已空该处理根了
+                st.pop();
+                result.push_back(cur->val);     // 中
+                cur = cur->right;               // 右
+            }
+        }
+        return result;
+    }
+};
+//前序遍历时栈直接存储待访问的节点，中序遍历需要cur指针配合栈完成深入+回溯
+```
+
+#### 后序遍历
+
+前序遍历是中左右，后序遍历是左右中，那么我们只需要调整一下前序遍历的代码顺序，就变成中右左的遍历顺序，然后在反转result数组，输出的结果顺序就是左右中了，如下图：
+
+![前序到后序](https://file1.kamacoder.com/i/algo/20200808200338924.png)
+
+**所以后序遍历只需要前序遍历的代码稍作修改就可以了，代码如下：**
+
+```cpp
+class Solution {
+public:
+    vector<int> postorderTraversal(TreeNode* root) {
+        stack<TreeNode*> st;
+        vector<int> result;
+        if (root == NULL) return result;
+        st.push(root);
+        while (!st.empty()) {
+            TreeNode* node = st.top();
+            st.pop();
+            result.push_back(node->val);
+            if (node->left) st.push(node->left); // 相对于前序遍历，这更改一下入栈顺序 （空节点不入栈）
+            if (node->right) st.push(node->right); // 空节点不入栈
+        }
+        reverse(result.begin(), result.end()); // 将结果反转之后就是左右中的顺序了
+        return result;
+    }
+};
+```
 
 ### 二叉树的统一迭代法
 
