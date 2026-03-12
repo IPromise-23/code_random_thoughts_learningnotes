@@ -6059,7 +6059,7 @@ class Solution:
 
 ### 二叉树的迭代遍历
 
-在[栈与队列](#栈与队列)中已知匹配问题是栈的强项，递归的实现就是：**每一次递归调用都会把函数的局部变量、参数值和返回地址等压入调用栈中**，然后递归返回的时候，从栈顶弹出上一次递归的各项参数，也是递归能返回上一层位置的原因
+在[栈与队列](#栈与队列)中已知**匹配问题**是栈的强项，递归的实现就是：**每一次递归调用都会把函数的<u>局部变量、参数值和返回地址等压入调用栈</u>中**，然后递归返回的时候，从栈顶弹出上一次递归的各项参数，也是递归能返回上一层位置的原因
 
 #### 前序遍历
 
@@ -6100,6 +6100,30 @@ public:
 >
 > ->	访问 指针指向的对象 的成员
 
+```python
+class Solution:
+    def preorderTraversal(self, root: Optional[TreeNode]) -> List[int]:
+        # 迭代遍历法
+        stack = []
+        res = []
+
+        if root is None:
+            return res#一定要有返回值，直接return返回的是None
+        
+        stack.append(root)
+
+        while stack:
+            node = stack[-1]
+            stack.pop()
+            res.append(node.val)
+            if node.right:
+                stack.append(node.right)
+            if node.left:
+                stack.append(node.left)
+
+        return res
+```
+
 #### 中序遍历
 
 在前序遍历的迭代过程中，有两个操作：
@@ -6110,6 +6134,30 @@ public:
 前序遍历的顺序是中左右，先访问的元素是中间节点，要处理的元素也是中间节点，所以刚刚才能写出相对简洁的代码，**因为<u>要访问的元素</u>和<u>要处理的元素</u>顺序是一致的，都是中间节点。**
 
 **因为前序遍历中访问节点（遍历节点）和处理节点（将元素放进result数组中）可以同步处理，但是中序就无法做到同步**
+
+> 遍历节点（访问节点）	沿着树的结构走到这个节点的动作，目的是探索树的结构、找到待处理的节点，或者继续深入子树
+>
+> 处理节点	对节点执行实际业务操作，比如把节点值放进result数组、打印、计算等等
+>
+> 给出一棵二叉树，先访问的一定是从根节点开始的，但是若是中序遍历，则先处理的是最左边的节点
+>
+> 比如对于下面这颗树
+>
+> ```plain
+>     1
+>    / \
+>   2   3
+>  /
+> 4
+> ```
+>
+> 前序遍历（先处理中间节点，再处理左子树，最后处理右子树）：遍历和处理是同步的	
+> 均为1 → 2 → 4 → 3
+>
+> 中序遍历（先处理左子树，再处理中间节点，最后处理右子树）：
+> 遍历节点顺序：从根节点开始，一路向左遍历到最左叶子，然后回溯，再遍历右子树
+> 处理节点顺序：遍历到根节点时不能立刻处理它，必须先把左子树全部遍历并处理完才能回头处理根节点
+> 遍历是早于处理的，因此需要用栈暂存**已遍历但未处理**的节点
 
 中序遍历是左中右，先访问的是二叉树顶部的节点，然后再一层层向下访问，直到到达树左面的最底部，然后再开始处理节点（即把节点的数值放进result数组中），这就造成了**处理顺序和访问顺序不一致的结果**
 
@@ -6124,7 +6172,7 @@ class Solution {
 public:
     vector<int> inorderTraversal(TreeNode* root) {
         vector<int> result;
-        //这里栈的作用时记录遍历路径，方便回溯到根节点；用于暂存待处理的根节点
+        //这里栈的作用为记录遍历路径，方便回溯到根节点；用于暂存待处理的根节点
         stack<TreeNode*> st;
         //遍历指针cur，负责访问节点（先走到最左），初始指向根节点
         //cur的核心作用是替代递归中的逐层深入左子树的过程
@@ -6148,9 +6196,34 @@ public:
 //前序遍历时栈直接存储待访问的节点，中序遍历需要cur指针配合栈完成深入+回溯
 ```
 
+```python
+class Solution:
+    def inorderTraversal(self, root: Optional[TreeNode]) -> List[int]:
+        #迭代遍历
+        #先深入到树最左边的最下面
+        stack = []#用于存储遍历过的指针，便于回溯, 不能提前将root节点加入stack中
+        res = []
+
+        cur = root 
+
+        while cur or stack:
+            # 先迭代访问最底层的左子树节点
+            if cur:
+                stack.append(cur)
+                cur = cur.left
+            # 到达最左节点后处理栈顶节点        
+            else:
+                cur = stack[-1]
+                stack.pop()
+                res.append(cur.val)
+                cur = cur.right
+
+        return res
+```
+
 #### 后序遍历
 
-前序遍历是中左右，后序遍历是左右中，那么我们只需要调整一下前序遍历的代码顺序，就变成中右左的遍历顺序，然后在反转result数组，输出的结果顺序就是左右中了，如下图：
+前序遍历是中左右，后序遍历是左右中，那么我们只需要调整一下前序遍历的代码顺序，即变成中右左的遍历顺序，然后在反转result数组，输出的结果顺序就是左右中了，如下图：
 
 ![前序到后序](https://file1.kamacoder.com/i/algo/20200808200338924.png)
 
@@ -6179,13 +6252,298 @@ public:
 
 ### 二叉树的统一迭代法
 
+在上一节中可以发现，迭代法实现的前中后序，风格并不相同，一会儿用栈遍历，一会儿又用指针来遍历
 
+我们希望找到一种统一的迭代法来表示二叉树的前中后序
+
+以中序遍历为例，使用栈时无法同时解决访问节点（遍历节点）和处理节点（将元素放进结果集）不一致的情况。	是否能通过**将访问的节点放入栈中，把要处理的节点也放入栈中，只不过是需要把处理节点做一下标记**
+
+- **空指针标记法**	要处理的节点放入栈之后，紧接着放入一个空指针作为标记
+- **`boolean标记法`**     加入一个`boolean`值跟随每个节点，`false`默认值用来表示需要为该节点和它的左右儿子安排在栈中的位次，`true`表示该节点的位次之前已经安排过了，可以收割节点了
+
+#### 中序遍历
+
+![中序遍历迭代（统一写法）](https://file1.kamacoder.com/i/algo/%E4%B8%AD%E5%BA%8F%E9%81%8D%E5%8E%86%E8%BF%AD%E4%BB%A3%EF%BC%88%E7%BB%9F%E4%B8%80%E5%86%99%E6%B3%95%EF%BC%89.gif)
+
+动画中，result数组就是最终结果集。
+
+可以看出我们将访问的节点直接加入到栈中，但如果是处理的节点则后面放入一个空节点， 这样只有空节点弹出的时候，才将下一个节点放进结果集。
+
+```c++
+//空指针标记法
+//本质上是将访问过的节点做一个标记，先深入到最左边的叶子节点，叶子节点可以视为没有左右节点的中节点，这样子在if语句作用下就标记了一个空指针，下一次循环时就能被取出值放入了
+//需要看成一个个小的子树慢慢长成一颗大树
+class Solution {
+public:
+    vector<int> inorderTraversal(TreeNode* root) {
+        vector<int> result;
+        stack<TreeNode*> st;
+        if (root != NULL) st.push(root);
+        while (!st.empty()) {//栈为空则说明遍历已经结束了，所有元素已经被遍历
+            TreeNode* node = st.top();
+            if (node != NULL) {
+                st.pop(); // 将该节点弹出，避免重复操作，下面再将右中左节点添加到栈中
+                if (node->right) st.push(node->right);  // 添加右节点（空节点不入栈）
+
+                st.push(node);                          // 添加中节点
+                st.push(NULL); // 中节点访问过，但是还没有处理，加入空节点做为标记。
+
+                if (node->left) st.push(node->left);    // 添加左节点（空节点不入栈）
+            } else { // 只有遇到空节点的时候，才将下一个节点放进结果集
+                st.pop();           // 将空节点弹出
+                node = st.top();    // 重新取出栈中元素
+                st.pop();
+                result.push_back(node->val); // 加入到结果集
+            }
+        }
+        return result;
+    }
+};
+
+//boolean标记法
+class Solution {
+public:
+    vector<int> inorderTraversal(TreeNode* root) {
+        vector<int> result;
+        stack<pair<TreeNode*, bool>> st;
+        if (root != nullptr)
+            st.push(make_pair(root, false)); // 多加一个参数，false 为默认值，含义见下文注释
+
+        while (!st.empty()) {
+            auto node = st.top().first;
+            auto visited = st.top().second; //多加一个 visited 参数，使“迭代统一写法”成为一件简单的事
+            st.pop();
+
+            if (visited) { // visited 为 True，表示该节点和两个儿子位次之前已经安排过了，现在可以收割节点了
+                result.push_back(node->val);
+                continue;
+            }
+
+            // visited 当前为 false, 表示初次访问本节点，此次访问的目的是“把自己和两个儿子在栈中安排好位次”。
+            
+            // 中序遍历是'左中右'，右儿子最先入栈，最后出栈。
+            if (node->right)
+                st.push(make_pair(node->right, false));
+            
+            // 把自己加回到栈中，位置居中。
+            // 同时，设置 visited 为 true，表示下次再访问本节点时，允许收割。
+            st.push(make_pair(node, true));
+
+            if (node->left)
+                st.push(make_pair(node->left, false)); // 左儿子最后入栈，最先出栈
+        }
+        
+        return result;
+    }
+};
+```
+
+下面给出统一迭代的`Python`解法
+
+```python
+#空指针标记法_前序遍历_中左右	栈：按 右左中 顺序放入栈
+class Solution:
+    def preorderTraversal(self, root: TreeNode) -> List[int]:
+        result = []
+        st= []
+        if root:
+            st.append(root)
+        while st:
+            node = st.pop()
+            if node != None:
+                if node.right: #右
+                    st.append(node.right)
+                if node.left: #左
+                    st.append(node.left)
+                st.append(node) #中
+                st.append(None)
+            else:
+                node = st.pop()
+                result.append(node.val)
+        return result
+
+#boolean标记法_前序遍历_左中右
+class Solution:
+    def inorderTraversal(self, root: Optional[TreeNode]) -> List[int]:
+        values = []
+        stack = [(root, False)] if root else [] # 多加一个参数，False 为默认值，含义见下文
+
+        while stack:
+            node, visited = stack.pop() # 多加一个 visited 参数，使“迭代统一写法”成为一件简单的事
+            
+            if visited: # visited 为 True，表示该节点和两个儿子的位次之前已经安排过了，现在可以收割节点了
+                values.append(node.val)
+                continue
+
+            # visited 当前为 False, 表示初次访问本节点，此次访问的目的是“把自己和两个儿子在栈中安排好位次”。
+            # 中序遍历是'左中右'，右儿子最先入栈，最后出栈。
+            if node.right:
+                stack.append((node.right, False))
+
+            stack.append((node, True)) # 把自己加回到栈中，位置居中。同时，设置 visited 为 True，表示下次再访问本节点时，允许收割
+
+            if node.left:
+                stack.append((node.left, False)) # 左儿子最后入栈，最先出栈
+
+        return values
+    
+```
 
 ### 二叉树的层序遍历
 
+前中后序的遍历方法统统都是深度优先搜索，而二叉树的层序遍历则是广度优先搜索
 
+层序遍历一个二叉树，就是从左到右一层层的去遍历二叉树，这种遍历的方式和之前的不太一样
+
+此时，需要一个辅助数据结构**队列**来实现，队列先进先出，符合一层层遍历的逻辑
+
+> 为什么深搜用**栈**，广搜用**队列**？
+>
+> DFS的核心是尽可能往深处走，走不通了再回溯。栈的后进先出特性完美匹配这一逻辑
+> 从根节点出发，不断向子节点深入时，把每个节点都压入栈中，相当于记录**走到了哪里**
+> 当走到叶子节点无法再深入时，需要回溯的父节点，这时候栈顶正好是最后进入的节点，弹出后就回到了父节点，接着可以搜索父节点的其他子树
+> 整个过程的逻辑是 先走到最深处，再一步步退回，这和栈 后进先出 的规则完全一致
+>
+> BFS的核心是按层访问，访问第一层（根节点），再访问第二层（根的所有子节点），再访问第三层…… 以此类推。队列的先进先出特性正好完美匹配这个 按层、按顺序扩散 的逻辑
+> 把初始节点入队，代表第一层要处理了
+> 依次出队处理每个节点，同时将他们的子节点入队
+> 队列先进先出，所以先入队的上层节点会先被处理，处理完后才会处理后入队的下层节点，保证了遍历顺序严格按层展开
+
+使用队列实现二叉树广度优先遍历，动画如下：
+
+![102二叉树的层序遍历](https://file1.kamacoder.com/i/algo/102%E4%BA%8C%E5%8F%89%E6%A0%91%E7%9A%84%E5%B1%82%E5%BA%8F%E9%81%8D%E5%8E%86.gif)
+
+这样就实现了层序从左到右遍历二叉树。
+
+代码如下：**这份代码也可以作为二叉树层序遍历的模板，打十个就靠它了**。
+
+c++代码如下：
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> levelOrder(TreeNode* root) {
+        queue<TreeNode*> que;
+        if (root != NULL) que.push(root);
+        vector<vector<int>> result;
+        while (!que.empty()) {
+            int size = que.size();
+            vector<int> vec;
+            // 这里一定要使用固定大小size，不要使用que.size()，因为que.size是不断变化的
+            for (int i = 0; i < size; i++) {
+                TreeNode* node = que.front();
+                que.pop();
+                vec.push_back(node->val);
+                if (node->left) que.push(node->left);
+                if (node->right) que.push(node->right);
+            }
+            result.push_back(vec);
+        }
+        return result;
+    }
+};
+
+
+//递归法
+//利用递归的深度depth标记节点所属的层级，把同一深度的节点收集到同一个数组中，最终形成按层划分的二维数组
+class Solution {
+public:
+    void order(TreeNode* cur, vector<vector<int>>& result, int depth){
+        if (cur == nullptr) return;//递归出口，return会返回到调用这个order函数的上一层位置，回到当前递归的调用处继续执行后续代码
+        //初始化当前层级的数组	result的大小等于当前已处理的最大深度+1
+        //如果当前深度depth还没有对应的层级数组，就创建一个空的一维数组，保证每个深度都有对应的容器存节点值	比如处理根节点时，depth=0，r.size()=0==depth，那么就要创建第一个二维数组；处理根节点的左子节点时，depth=1，r.size()=1==depth,创建第二个一维数组；处理根节点的右子节点时，depth=1，r.siaze()=1!=depth，不创建，直接用现成的第二个数组
+        if (result.size() == depth) result.push_back(vector<int>());
+        //把当前节点的值放入对应深度的一维数组中
+        result[depth].push_back(cur->val);
+        //递归遍历左右子树，每个子节点的深度比父节点大1，保证层级不混乱
+        order(cur->left, result, depth + 1);
+        order(cur->right, result, depth + 1);
+    }
+//如果是「调用左子树的递归」触发return → 回到调用处，继续执行「调用右子树的递归」；
+//如果是「调用右子树的递归」触发return → 回到父节点的递归函数末尾，父节点的递归执行完毕，回到祖父节点的调用处。
+    vector<vector<int>> levelOrder(TreeNode* root) {
+        vector<vector<int>> result;
+        int depth = 0;
+        order(root, result, depth);
+        return result;
+    }
+};
+```
+
+Python代码如下
+
+```python
+# 利用长度法
+# Definition for a binary tree node.
+# class TreeNode:
+#     def __init__(self, val=0, left=None, right=None):
+#         self.val = val
+#         self.left = left
+#         self.right = right
+class Solution:
+    def levelOrder(self, root: Optional[TreeNode]) -> List[List[int]]:
+        if not root:
+            return []
+        #collections.deque是python官方推荐的双端队列，比普通列表list的pop(0)效率高
+        queue = collections.deque([root])
+        result = []
+        while queue:#只要队列非空就说明有节点还没处理，要继续循环
+            level = []
+            #_是python的占位符变量，表示只需要循环指定的次数，不需要用到循环变量
+            for _ in range(len(queue)):
+                #取出队首节点
+                cur = queue.popleft()
+                level.append(cur.val)
+                if cur.left:
+                    queue.append(cur.left)
+                if cur.right:
+                    queue.append(cur.right)
+            result.append(level)
+        return result
+
+    
+#递归法
+# Definition for a binary tree node.
+# class TreeNode:
+#     def __init__(self, val=0, left=None, right=None):
+#         self.val = val
+#         self.left = left
+#         self.right = right
+class Solution:
+    def levelOrder(self, root: Optional[TreeNode]) -> List[List[int]]:
+        if not root:
+            return []
+
+        levels = []
+
+        def traverse(node, level):
+            if not node:
+                return
+
+            if len(levels) == level:
+                levels.append([])
+
+            levels[level].append(node.val)
+            traverse(node.left, level + 1)
+            traverse(node.right, level + 1)
+
+        traverse(root, 0)
+        return levels
+```
 
 ### 翻转二叉树
+
+```plain
+#题目
+
+翻转一棵二叉树，见示例
+```
+
+![20210203192644329](https://file1.kamacoder.com/i/algo/20210203192644329.png)
+
+#### 思路
+
+
 
 
 
