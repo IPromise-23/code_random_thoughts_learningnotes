@@ -6423,17 +6423,19 @@ c++代码如下：
 class Solution {
 public:
     vector<vector<int>> levelOrder(TreeNode* root) {
-        queue<TreeNode*> que;
+        queue<TreeNode*> que;//先进先出的队列，存储指针
         if (root != NULL) que.push(root);
-        vector<vector<int>> result;
-        while (!que.empty()) {
-            int size = que.size();
+        vector<vector<int>> result;//存储最终结果，二维数组
+        while (!que.empty()) {//队列不为空，说明层序遍历未结束
+            int size = que.size();//存储的是每一层含有的节点数
             vector<int> vec;
             // 这里一定要使用固定大小size，不要使用que.size()，因为que.size是不断变化的
+            //size 的核心价值是“快照”当前层的节点数：在处理当前层前，先把队列长度固定下来，隔绝后续push操作对循环次数的影响；
             for (int i = 0; i < size; i++) {
                 TreeNode* node = que.front();
                 que.pop();
                 vec.push_back(node->val);
+                //左右节点不为空节点的话应该被放入队列中，先进先出所以先做后右
                 if (node->left) que.push(node->left);
                 if (node->right) que.push(node->right);
             }
@@ -6461,6 +6463,7 @@ public:
     }
 //如果是「调用左子树的递归」触发return → 回到调用处，继续执行「调用右子树的递归」；
 //如果是「调用右子树的递归」触发return → 回到父节点的递归函数末尾，父节点的递归执行完毕，回到祖父节点的调用处。
+    
     vector<vector<int>> levelOrder(TreeNode* root) {
         vector<vector<int>> result;
         int depth = 0;
@@ -6488,7 +6491,7 @@ class Solution:
         queue = collections.deque([root])
         result = []
         while queue:#只要队列非空就说明有节点还没处理，要继续循环
-            level = []
+            level = []#每一次循环都初始化一次level，存这一层深度的所有节点
             #_是python的占位符变量，表示只需要循环指定的次数，不需要用到循环变量
             for _ in range(len(queue)):
                 #取出队首节点
@@ -6514,10 +6517,10 @@ class Solution:
         if not root:
             return []
 
-        levels = []
+        levels = []#初始化数组，用于存储最终二维数组结果
 
         def traverse(node, level):
-            if not node:
+            if not node:#空节点直接返回
                 return
 
             if len(levels) == level:
@@ -6543,9 +6546,138 @@ class Solution:
 
 #### 思路
 
+![20210203192724351](https://file1.kamacoder.com/i/algo/20210203192724351.png)
 
+要想翻转一颗二叉树，其实就是把每个节点的左右孩子交换一下
 
+遍历的过程中去翻转每一个节点的左右孩子就可以达到整体翻转的效果
 
+##### 递归法
+
+以前序遍历为例子，通过动画观察一下翻转的过程
+
+![翻转二叉树](https://file1.kamacoder.com/i/algo/%E7%BF%BB%E8%BD%AC%E4%BA%8C%E5%8F%89%E6%A0%91.gif)
+
+递归三部曲
+
+- 确定递归函数的参数和返回值
+  参数就是要传入节点的指针，返回值根据题目可以确定是要返回root节点的指针
+
+  ```c++
+  TreeNode* inverTree(TreeNode* root)
+  ```
+
+- 确定终止条件
+  当前节点为空的时候就返回
+
+  ```c++
+  if (root == NULL) return root;
+  ```
+
+- 确定单层递归的逻辑
+  采用前序遍历，所以先进行交换左右孩子节点，然后再反转左、右子树
+
+  ```C++
+  swap(root->left,root->right);
+  inverTree(root->left);
+  inverTree(root->right);
+  ```
+
+基于这递归三步法，代码基本写完，C++代码如下：
+
+```cpp
+class Solution {
+public:
+    TreeNode* invertTree(TreeNode* root) {
+        if (root == NULL) return root;
+        swap(root->left, root->right);  // 中，交换当前节点的左右子树
+        invertTree(root->left);         // 左，递归翻转左子树
+        invertTree(root->right);        // 右，递归翻转右子树
+        return root;
+    }
+};
+```
+
+##### 迭代法
+
+C++代码迭代法（前序遍历）	用栈来模拟递归
+
+```cpp
+class Solution {
+public:
+    TreeNode* invertTree(TreeNode* root) {
+        if (root == NULL) return root;
+        stack<TreeNode*> st;
+        st.push(root);
+        while(!st.empty()) {
+            TreeNode* node = st.top();              // 中
+            st.pop();
+            //弹出节点目的是 获取这个节点的内存引用 swap来交换左右孩子，二叉树的节点是存放在内存中的对象，node变量是指向这个内存地址的指针，在swap时直接修改了这个节点在内存中的左右指针指向，这个修改是持久化的不需要额外变量来记录，因为整棵树是靠这些指针串联起来的
+            //栈只用于存储待处理的子节点，弹出节点是为了对它执行swap操作，操作后该节点的结构就改变了，实现翻转
+            swap(node->left, node->right);
+            //下面的if顺序反一下也不影响翻转结果哦，只是为了和前序的中左右匹配，因为栈后进先出
+            if(node->right) st.push(node->right);   // 右
+            if(node->left) st.push(node->left);     // 左
+        }
+        return root;
+    }
+};
+```
+
+栈的弹出操作不是为了收集节点值，而是为了获取节点的内存引用；
+每弹出一个节点，就立刻交换它的左右子树指针 —— 这个交换直接修改了节点在内存中的结构（无需额外记录），栈仅用于存储待处理的子节点，保证能遍历到所有节点并完成交换。
+最终，虽然`root`始终指向根节点 1，但根节点及其所有子节点的`left/right`指针都已被逐层修改，整棵树的结构也就完成了翻转。
+
+C++代码如下迭代法（前序遍历）	统一迭代法
+
+```cpp
+class Solution {
+public:
+    TreeNode* invertTree(TreeNode* root) {
+        stack<TreeNode*> st;
+        if (root != NULL) st.push(root);
+        while (!st.empty()) {
+            TreeNode* node = st.top();
+            if (node != NULL) {
+                st.pop();
+                if (node->right) st.push(node->right);  // 右
+                if (node->left) st.push(node->left);    // 左
+                st.push(node);                          // 中
+                st.push(NULL);
+            } else {
+                st.pop();
+                node = st.top();
+                st.pop();
+                swap(node->left, node->right);          // 节点处理逻辑
+            }
+        }
+        return root;
+    }
+};
+```
+
+层序遍历也是可以翻转这棵树的，因为层序遍历也可以把每个节点的左右孩子都翻转一遍，代码如下：
+
+```cpp
+class Solution {
+public:
+    TreeNode* invertTree(TreeNode* root) {
+        queue<TreeNode*> que;
+        if (root != NULL) que.push(root);
+        while (!que.empty()) {
+            int size = que.size();
+            for (int i = 0; i < size; i++) {
+                TreeNode* node = que.front();
+                que.pop();
+                swap(node->left, node->right); // 节点处理
+                if (node->left) que.push(node->left);
+                if (node->right) que.push(node->right);
+            }
+        }
+        return root;
+    }
+};
+```
 
 ### 二叉树周末总结
 
